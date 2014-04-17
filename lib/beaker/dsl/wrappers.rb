@@ -8,16 +8,31 @@ module Beaker
     # many of them.
     module Wrappers
 
+      # This is nasty but deals with the issues that windows commands end in .bat
+      # and the path for puppet is not added to the $PATH on installation so we
+      # have to add it here.
+      #
+      # Need to add support for pre-2008 environments
+      #
+      def env_cmd(host,cmd)
+        if host['platform'] =~ /windows/
+          "\"C:\\PROGRA~2\\PUPPET~1\\Puppet\\bin\\#{cmd}.bat\""
+        else
+          cmd
+        end
+      end
+
       # This is hairy and because of legacy code it will take a bit more
       # work to disentangle all of the things that are being passed into
       # this catchall param.
       #
       # @api dsl
       def facter(*args)
+        host = args.shift
         options = args.last.is_a?(Hash) ? args.pop : {}
         options['ENV'] ||= {}
         options['ENV'] = options['ENV'].merge( Command::DEFAULT_GIT_ENV )
-        Command.new('facter', args, options )
+        Command.new(env_cmd(host,'facter'), args, options )
       end
 
       # This is hairy and because of legacy code it will take a bit more

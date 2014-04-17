@@ -973,7 +973,7 @@ module Beaker
       # @return String The value of the fact 'name' on the provided host
       # @raise  [FailTest] Raises an exception if call to facter fails
       def fact_on(host, name, opts = {})
-        result = on host, facter(name, opts)
+        result = on host, facter(host, name, opts)
         result.stdout.chomp if result.stdout
       end
 
