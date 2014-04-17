@@ -438,14 +438,12 @@ module Beaker
       #
       # @api dsl
       # @return nil
-      def install_puppet
+      def install_puppet(relver)
         hosts.each do |host|
           if host['platform'] =~ /el-(5|6)/
-            relver = $1
             on host, "rpm -ivh http://yum.puppetlabs.com/puppetlabs-release-el-#{relver}.noarch.rpm"
             on host, 'yum install -y puppet'
           elsif host['platform'] =~ /fedora-(\d+)/
-            relver = $1
             on host, "rpm -ivh http://yum.puppetlabs.com/puppetlabs-release-fedora-#{relver}.noarch.rpm"
             on host, 'yum install -y puppet'
           elsif host['platform'] =~ /(ubuntu|debian)/
@@ -456,6 +454,9 @@ module Beaker
             on host, 'dpkg -i puppetlabs-release-$(lsb_release -c -s).deb'
             on host, 'apt-get -y -f -m update'
             on host, 'apt-get install -y puppet'
+          elsif host['platform'] =~ /windows/
+            on host, "curl -O http://downloads.puppetlabs.com/windows/puppet-#{relver}.msi"
+            on host, "msiexec /qn /i puppet-#{relver}.msi"
           else
             raise "install_puppet() called for unsupported platform '#{host['platform']}' on '#{host.name}'"
           end

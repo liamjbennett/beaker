@@ -14,7 +14,8 @@ module Beaker
       #
       # Need to add support for pre-2008 environments
       #
-      def env_cmd(host,cmd)
+      def
+      env_cmd(host,cmd)
         if host['platform'] =~ /windows/
           "\"C:\\PROGRA~2\\PUPPET~1\\Puppet\\bin\\#{cmd}.bat\""
         else
@@ -62,12 +63,13 @@ module Beaker
       #
       # @api dsl
       def puppet(*args)
+        host = args.shift
         options = args.last.is_a?(Hash) ? args.pop : {}
         options['ENV'] ||= {}
         options['ENV'] = options['ENV'].merge( Command::DEFAULT_GIT_ENV )
         # we assume that an invocation with `puppet()` will have it's first argument
         # a face or sub command
-        cmd = "puppet #{args.shift}"
+        cmd = "#{env_cmd(host,'puppet')} #{args.shift}"
         Command.new( cmd, args, options )
       end
 

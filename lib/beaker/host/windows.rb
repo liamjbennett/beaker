@@ -44,6 +44,7 @@ module Windows
         # PATH related variables need to be Unix, which cygwin converts
         'hierabindir'       => '/opt/puppet-git-repos/hiera/bin',
         'pathseparator'     => ';',
+        'distmoduledir'     => '/cygdrive/c/ProgramData/PuppetLabs/puppet/etc/modules'
       })
     end
   end
