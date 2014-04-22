@@ -716,6 +716,7 @@ module Beaker
         args << "--parseonly" if opts[:parseonly]
         args << "--trace" if opts[:trace]
         args << "--parser future" if opts[:future_parser]
+        args << "--modulepath #{opts[:modulepath]}" if opts[:modulepath]
 
         # From puppet help:
         # "... an exit code of '2' means there were changes, an exit code of
@@ -764,7 +765,7 @@ module Beaker
         file_path = host.tmpfile('apply_manifest.pp')
         create_remote_file(host, file_path, manifest + "\n")
         args << file_path
-        on host, puppet( 'apply', *args), on_options, &block
+        on host, puppet( host, 'apply', *args), on_options, &block
       end
 
       # Runs 'puppet apply' on default host, piping manifest through stdin
