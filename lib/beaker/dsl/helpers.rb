@@ -765,7 +765,7 @@ module Beaker
         file_path = host.tmpfile('apply_manifest.pp')
         create_remote_file(host, file_path, manifest + "\n")
         args << file_path
-        on host, puppet('apply', *args), on_options, &block
+        on host, puppet( 'apply', *args), on_options, &block
       end
 
       # Runs 'puppet apply' on default host, piping manifest through stdin

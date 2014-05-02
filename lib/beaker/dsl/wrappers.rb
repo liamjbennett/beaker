@@ -52,7 +52,8 @@ module Beaker
         options['ENV'] = options['ENV'].merge( Command::DEFAULT_GIT_ENV )
         # we assume that an invocation with `puppet()` will have it's first argument
         # a face or sub command
-        Command.new( 'puppet', args, options )
+        cmd = "puppet #{args.shift}"
+        Command.new( cmd, args, options )
       end
 
       # @!visibility private
