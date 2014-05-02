@@ -765,7 +765,7 @@ module Beaker
         file_path = host.tmpfile('apply_manifest.pp')
         create_remote_file(host, file_path, manifest + "\n")
         args << file_path
-        on host, puppet( host, 'apply', *args), on_options, &block
+        on host, puppet('apply', *args), on_options, &block
       end
 
       # Runs 'puppet apply' on default host, piping manifest through stdin
@@ -983,7 +983,7 @@ module Beaker
       # @return String The value of the fact 'name' on the provided host
       # @raise  [FailTest] Raises an exception if call to facter fails
       def fact_on(host, name, opts = {})
-        result = on host, facter(host, name, opts)
+        result = on host, facter(name, opts)
         result.stdout.chomp if result.stdout
       end
 
