@@ -461,6 +461,9 @@ module Beaker
             relver = opts[:version]
             on host, "curl -O http://downloads.puppetlabs.com/windows/puppet-#{relver}.msi"
             on host, "msiexec /qn /i puppet-#{relver}.msi"
+
+            #Because the msi installer doesn't add Puppet to the environment path
+            on host, %q{ echo 'export PATH=$PATH:"/cygdrive/c/Program Files (x86)/Puppet Labs/Puppet/bin"' > /etc/bash.bashrc }
           else
             raise "install_puppet() called for unsupported platform '#{host['platform']}' on '#{host.name}'"
           end
