@@ -107,13 +107,19 @@ module Beaker
     end
 
     #Update /etc/hosts on the master node to include a rule for lookup of the master by name/ip.
-    # @param [Host, Array<Host>, String, Symbol] host One or more hosts to act upon
+    # @param [Host, Array<Host>, String, Symbol] hosts One or more hosts to act upon
     # @param [Hash{Symbol=>String}] opts Options to alter execution.
     # @option opts [Beaker::Logger] :logger A {Beaker::Logger} object
     def add_master_entry hosts, opts
       logger = opts[:logger]
       master = only_host_with_role(hosts, :master)
       logger.notify "Add Master entry to /etc/hosts on #{master.name}"
+      if master["hypervisor"] and master["hypervisor"] =~ /docker/
+        # skip on docker because as of 0.8.1 /etc/hosts isn't modifiable
+        # https://github.com/dotcloud/docker/issues/2267
+        logger.debug "Don't update master entry on docker masters"
+        return
+      end
       if master["hypervisor"] and master["hypervisor"] =~ /vagrant/
         logger.debug "Don't update master entry on vagrant masters"
         return
@@ -199,7 +205,7 @@ module Beaker
         host.map { |h| apt_get_update(h) }
       else
         if host[:platform] =~ /(ubuntu)|(debian)/ 
-          host.exec(Command.new("apt-get -y -f -m update"))
+          host.exec(Command.new("apt-get update"))
         end
       end
     end
@@ -302,8 +308,9 @@ module Beaker
 
     #Determine the ip address of the provided host 
     # @param [Host] host the host to act upon
+    # @deprecated use {Host#get_ip}
     def get_ip(host)
-      host.exec(Command.new("ip a|awk '/global/{print$2}' | cut -d/ -f1 | head -1")).stdout.chomp
+      host.get_ip
     end
 
     #Append the provided string to the /etc/hosts file of the provided host
