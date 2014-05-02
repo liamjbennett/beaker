@@ -30,13 +30,6 @@ module Beaker
         v_file << "    v.vm.box_url = '#{host['box_url']}'\n" unless host['box_url'].nil?
         v_file << "    v.vm.base_mac = '#{randmac}'\n"
         v_file << "    v.vm.network :private_network, ip: \"#{host['ip'].to_s}\", :netmask => \"#{host['netmask'] ||= "255.255.0.0"}\"\n"
-
-        #If the machine has been created with packer and contains an embedded vagrantfile then this will cause duplication
-        #if /windows/i.match(host['platform'])
-        #  v_file << "    v.vm.network :forwarded_port, guest: 3389, host: 3389\n"
-        #  v_file << "    v.vm.network :forwarded_port, guest: 5985, host: 5985, id: 'winrm', auto_correct: true\n"
-        #  v_file << "    v.vm.guest = :windows"
-        #end
         v_file << "  end\n"
         @logger.debug "created Vagrantfile for VagrantHost #{host.name}"
       end
