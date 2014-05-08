@@ -451,7 +451,7 @@ module Beaker
       def install_puppet(opts = {})
 
         hosts.each do |host|
-          if host['platform'] =~ /el-(5|6)/
+          if host['platform'] =~ /el-(5|6|7)/
             relver = $1
             on host, "rpm -ivh http://yum.puppetlabs.com/puppetlabs-release-el-#{relver}.noarch.rpm"
             on host, 'yum install -y puppet'
