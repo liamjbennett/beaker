@@ -553,7 +553,11 @@ module Beaker
           end
 
           # Certain install paths may not create the config dirs/files needed
-          on host, "mkdir -p #{host['puppetpath']}"
+          if host['platform'] =~ /windows/
+            on host, "md \"#{host['puppetpath']}\""
+          else
+            on host, "mkdir -p #{host['puppetpath']}"
+          end
           on host, "echo '' >> #{host['hieraconf']}"
         end
         nil
@@ -640,16 +644,35 @@ module Beaker
       # @return nil
       # @api private
       def install_puppet_from_msi( host, opts )
-        on host, "curl -O http://downloads.puppetlabs.com/windows/puppet-#{opts[:version]}.msi"
-        on host, "msiexec /qn /i puppet-#{opts[:version]}.msi"
-
-        #Because the msi installer doesn't add Puppet to the environment path
-        if fact_on(host, 'architecture').eql?('x86_64')
-          install_dir = '/cygdrive/c/Program Files (x86)/Puppet Labs/Puppet/bin'
+        
+        url = "http://downloads.puppetlabs.com/windows/puppet-#{opts[:version]}.msi"
+        
+        if host['communicator'] =~ /bitvise/
+          dest = "C:\\Windows\\Temp\\puppet-#{opts[:version]}.msi"
+          
+          on host, "set PATH=\"%PATH%;#{host['puppetbindir']}\""
+          on host, "setx PATH \"%PATH%;#{host['puppetbindir']}\""
+          
+          on host, "powershell.exe -InputFormat None -NoProfile -NonInteractive -NoLogo -ExecutionPolicy Bypass -Command \"$webclient = New-Object System.Net.WebClient;  $webclient.DownloadFile('#{url}','#{dest}')\""
+          
+          on host, "md #{host['distmoduledir']}"
         else
-          install_dir = '/cygdrive/c/Program Files/Puppet Labs/Puppet/bin'
+          dest = "/cygdrive/c/Windows/Temp/puppet-#{opts[:version]}.msi"
+          on host, "curl #{url}"
+          
+          #Because the msi installer doesn't add Puppet to the environment path
+          if fact_on(host, 'architecture').eql?('x86_64')
+            install_dir = '/cygdrive/c/Program Files (x86)/Puppet Labs/Puppet/bin'
+          else
+            install_dir = '/cygdrive/c/Program Files/Puppet Labs/Puppet/bin'
+          end
+          on host, %Q{ echo 'export PATH=$PATH:"#{install_dir}"' > /etc/bash.bashrc }
+          
         end
-        on host, %Q{ echo 'export PATH=$PATH:"#{install_dir}"' > /etc/bash.bashrc }
+        
+        on host, "msiexec /qn /i #{dest}"
+
+
       end
 
       # Installs Puppet and dependencies from dmg
@@ -735,8 +758,7 @@ module Beaker
         ver_cmd = opts[:version] ? "-v#{opts[:version]}" : ''
         on host, "gem install puppet #{ver_cmd} --no-ri --no-rdoc"
       end
-
-
+    
       #Install PE based upon host configuration and options
       # @example
       #  install_pe

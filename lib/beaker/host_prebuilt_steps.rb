@@ -96,9 +96,11 @@ module Beaker
             end
           end
         when host['platform'] =~ /windows/
-          WINDOWS_PACKAGES.each do |pkg|
-            if not host.check_for_package pkg
-              host.install_package pkg
+          if host['communicator'].eql?('cygwin')
+            WINDOWS_PACKAGES.each do |pkg|
+              if not host.check_for_package pkg
+                host.install_package pkg
+              end
             end
           end
         when host['platform'] !~ /debian|aix|solaris|windows|sles-|osx-/
@@ -284,8 +286,10 @@ module Beaker
       block_on host do |host|
         logger.debug "Give root a copy of current user's keys, on #{host.name}"
         if host['platform'] =~ /windows/
-          host.exec(Command.new('cp -r .ssh /cygdrive/c/Users/Administrator/.'))
-          host.exec(Command.new('chown -R Administrator /cygdrive/c/Users/Administrator/.ssh'))
+          if host['communicator'].eql?('cygwin')
+            host.exec(Command.new('cp -r .ssh /cygdrive/c/Users/Administrator/.'))
+            host.exec(Command.new('chown -R Administrator /cygdrive/c/Users/Administrator/.ssh'))
+          end
         else
           host.exec(Command.new('sudo su -c "cp -r .ssh /root/."'), {:pty => true})
         end

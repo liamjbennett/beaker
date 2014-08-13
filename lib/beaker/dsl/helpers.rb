@@ -269,7 +269,7 @@ module Beaker
       def create_remote_file(hosts, file_path, file_content, opts = {})
         Tempfile.open 'beaker' do |tempfile|
           File.open(tempfile.path, 'w') {|file| file.puts file_content }
-
+          file_path.strip!
           scp_to hosts, tempfile.path, file_path, opts
         end
       end
@@ -1328,10 +1328,11 @@ module Beaker
         else
           module_name = parse_for_modulename(opts[:source])
         end
-        scp_to host, File.join(opts[:source]), File.join(target_module_dir, module_name), {:ignore => ignore_list}
+        
+        scp_to host, File.join(opts[:source]) , File.join(target_module_dir, module_name), {:ignore => ignore_list, :recursive => true}
+        #scp_to host, File.join(opts[:source]) , File.join(target_module_dir, module_name), {:ignore => ignore_list }
       end
       alias :copy_root_module_to :copy_module_to
-
 
       #Recursive method for finding the module root
       # Assumes that a Modulefile exists

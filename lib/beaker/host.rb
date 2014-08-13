@@ -57,7 +57,12 @@ module Beaker
     end
 
     def merge_defaults_for_type options, type
-      defaults = self.class.send "#{type}_defaults".to_sym
+      if options['HOSTS'][name]['platform'] =~ /windows/
+        communicator = options['HOSTS'][name]['communicator']
+        defaults = self.class.send("#{type}_defaults".to_sym, communicator)
+      else
+        defaults = self.class.send "#{type}_defaults".to_sym
+      end
       defaults.merge(options.merge((options['HOSTS'][name])))
     end
 
@@ -247,7 +252,8 @@ module Beaker
     # @param [String] dir The directory structure to create on the host
     # @return [Boolean] True, if directory construction succeeded, otherwise False
     def mkdir_p dir
-      result = exec(Beaker::Command.new("mkdir -p #{dir}"), :acceptable_exit_codes => [0, 1])
+      cmd = self.defaults['communicator'] =~ /bitvise/ ? "md #{dir.gsub!('/','\\')}" : "mkdir -p #{dir}"
+      result = exec(Beaker::Command.new(cmd), :acceptable_exit_codes => [0, 1])
       result.exit_code == 0
     end
 
@@ -258,7 +264,7 @@ module Beaker
     # @option options [Boolean] :recursive Should we copy recursively?  Defaults to 'True' in case of a directory source.
     # @option options [Array<String>] :ignore An array of file/dir paths that will not be copied to the host
     def do_scp_to source, target, options
-      @logger.debug "localhost $ scp #{source} #{@name}:#{target}"
+      @logger.debug "localhost $ scp #{source} #{@name}:#{target}:#{options}"
 
       result = Result.new(@name, [source, target])
       has_ignore = options[:ignore] and not options[:ignore].empty?
@@ -290,15 +296,20 @@ module Beaker
         @logger.debug "After rejecting ignored files/dirs, going to scp [#{dir_source.join(", ")}]"
 
         # create necessary directory structure on host
-        required_dirs = (dir_source.map{ | dir | File.dirname(dir) }).uniq
+        required_dirs = (dir_source.map{ | dir | File.dirname(dir).gsub!("#{source}/",'') }).uniq
         required_dirs.each do |dir|
-          mkdir_p( File.join(target, dir) )
+          mkdir_p( File.join(target, dir) ) if dir
+        end
+        
+        dir_source.reject! do |f|
+          f.to_s.gsub!("#{source}/", '').include?('/')
         end
 
         # copy each file to the host
         dir_source.each do |s|
-          file_path = File.join(target, s)
-          result = connection.scp_to(s, file_path, options, $dry_run)
+          #file_path = File.join(target, s)
+          file_path = File.join(source,s)
+          result = connection.scp_to(file_path, target, options, $dry_run)
         end
       end
 
