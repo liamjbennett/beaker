@@ -54,6 +54,7 @@ module Beaker
       v_file << "  c.vm.provider :virtualbox do |vb|\n"
       v_file << "    vb.customize [\"modifyvm\", :id, \"--memory\", \"#{options['vagrant_memsize'] ||= '1024'}\"]\n"
       v_file << "    vb.customize [\"modifyvm\", :id, \"--natdnshostresolver1\", \"on\"]\n"
+      v_file << "    vb.customize [\"modifyvm\", :id, \"--natdnsproxy1\", \"on\"]\n"
       v_file << "  end\n"
       v_file << "end\n"
       File.open(@vagrant_file, 'w') do |f|
