@@ -39,6 +39,7 @@ module Beaker
             v_file << "      vb.customize ['createhd', '--filename', '#{host['disk_path']}', '--size', #{host['disk_size'] ||= 5 * 1024}, '--format', 'vmdk']\n"
           end
           v_file << "      vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium','#{host['disk_path']}']\n"
+          v_file << "      vb.customize [\"modifyvm\", \"#{host.name}\", \"--natdnshostresolver1\", \"on\"]\n"
           v_file << "    end\n"
         end
 
@@ -53,7 +54,6 @@ module Beaker
       end
       v_file << "  c.vm.provider :virtualbox do |vb|\n"
       v_file << "    vb.customize [\"modifyvm\", :id, \"--memory\", \"#{options['vagrant_memsize'] ||= '1024'}\"]\n"
-      v_file << "    vb.customize [\"modifyvm\", \"#{host.name}\", \"--natdnshostresolver1\", \"on\"]\n"
       v_file << "  end\n"
       v_file << "end\n"
       File.open(@vagrant_file, 'w') do |f|
