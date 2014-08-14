@@ -39,9 +39,12 @@ module Beaker
             v_file << "      vb.customize ['createhd', '--filename', '#{host['disk_path']}', '--size', #{host['disk_size'] ||= 5 * 1024}, '--format', 'vmdk']\n"
           end
           v_file << "      vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium','#{host['disk_path']}']\n"
-          v_file << "      vb.customize [\"modifyvm\", \"#{host.name}\", \"--natdnshostresolver1\", \"on\"]\n"
           v_file << "    end\n"
         end
+        
+        v_file << "    v.vm.provider :virtualbox do |vb|\n"
+        v_file << "      vb.customize [\"modifyvm\", \"#{host.name}\", \"--natdnshostresolver1\", \"on\"]\n"
+        v_file << "    end\n"
 
         if /windows/i.match(host['platform'])
           v_file << "    v.vm.network :forwarded_port, guest: 3389, host: 3389\n"
