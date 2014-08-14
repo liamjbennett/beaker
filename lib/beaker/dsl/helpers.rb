@@ -1003,11 +1003,11 @@ module Beaker
           on_options[:acceptable_exit_codes] = Array(opts[:acceptable_exit_codes])
 
           puppet_agent_opts = {}
-          puppet_agent_opts['no-daemonize'] = true
+          puppet_agent_opts['no-daemonize'] = nil
           puppet_agent_opts[:verbose] = nil
           puppet_agent_opts[:debug] = nil if opts[:debug]
-          puppet_agent_opts[:onetime] = true
-          puppet_agent_opts[:test] = true
+          puppet_agent_opts[:onetime] = nil
+          puppet_agent_opts[:test] = nil
           puppet_agent_opts[:noop] = nil if opts[:noop]
           
           # From puppet help:
