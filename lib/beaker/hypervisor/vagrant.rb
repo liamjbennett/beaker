@@ -72,7 +72,7 @@ module Beaker
         #replace hostname with ip
         ssh_config = ssh_config.gsub(/#{host.name}/, host['ip']) unless not host['ip']
         if host['platform'] =~ /windows/
-          ssh_config = ssh_config.gsub(/127\.0\.0\.1/, host['ip']) unless not host['ip']
+          ssh_config = ssh_config.exitgsub(/127\.0\.0\.1/, host['ip']) unless not host['ip']
         end
         #set the user
         ssh_config = ssh_config.gsub(/User vagrant/, "User #{user}")
