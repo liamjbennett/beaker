@@ -252,7 +252,7 @@ module Beaker
     # @param [String] dir The directory structure to create on the host
     # @return [Boolean] True, if directory construction succeeded, otherwise False
     def mkdir_p dir
-      cmd = self.defaults['communicator'] =~ /bitvise/ ? "md #{dir.gsub!('/','\\')}" : "mkdir -p #{dir}"
+      cmd = self.defaults['communicator'] =~ /bitvise/ ? "if not exist #{dir.gsub!('/','\\')} (md #{dir.gsub!('/','\\')})" : "mkdir -p #{dir}"
       result = exec(Beaker::Command.new(cmd), :acceptable_exit_codes => [0, 1])
       result.exit_code == 0
     end
