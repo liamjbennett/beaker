@@ -655,7 +655,7 @@ module Beaker
           
           on host, "powershell.exe -InputFormat None -NoProfile -NonInteractive -NoLogo -ExecutionPolicy Bypass -Command \"$webclient = New-Object System.Net.WebClient;  $webclient.DownloadFile('#{url}','#{dest}')\""
           
-          on host, "md #{host['distmoduledir']}"
+          on host, "if not exist #{host['distmoduledir']} (md #{host['distmoduledir']})"
         else
           dest = "/cygdrive/c/Windows/Temp/puppet-#{opts[:version]}.msi"
           on host, "curl #{url}"
