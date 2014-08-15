@@ -37,6 +37,7 @@ module Windows
         h.merge({
           'puppetpath'    => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\etc",
           'hieraconf'     => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\etc\\hiera.yaml",
+          'puppetvardir'  => 'C:\\ProgramData\\PuppetLabs\\puppet\\var'
           'distmoduledir' => 'C:\\ProgramData\\PuppetLabs\\puppet\\etc\\modules',
           'puppetbindir'  => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\bin",
           'pathseparator' => ';',
