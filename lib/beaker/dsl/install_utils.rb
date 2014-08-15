@@ -554,7 +554,7 @@ module Beaker
 
           # Certain install paths may not create the config dirs/files needed
           if host['platform'] =~ /windows/
-            on host, "md \"#{host['puppetpath']}\""
+            on host, "if not exist \"#{host['puppetpath']}\" (md \"#{host['puppetpath']}\")"
           else
             on host, "mkdir -p #{host['puppetpath']}"
           end
