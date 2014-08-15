@@ -574,7 +574,7 @@ module Beaker
             conf_data = ''
             opts.each do |section,options|
               conf_data << "[#{section}]\r\n"
-              section.each do |option,value|
+              options.each do |option,value|
                 conf_data << "#{option}=#{value}\r\n"
               end
               conf_data << "\r\n"
