@@ -562,6 +562,29 @@ module Beaker
         end
         nil
       end
+      
+      #
+      #
+      #
+      def configure_puppet(opts = {})
+        hosts.each do |host|
+          if host['platform'] =~ /windows/
+            puppet_conf = "C:\\ProgramData\\PuppetLabs\\puppet\\etc\\puppet.conf"
+            powershell_pre = "powershell.exe -InputFormat None -NoProfile -NonInteractive -NoLogo -ExecutionPolicy Bypass"
+            conf_data = ''
+            opts.each do |section,options|
+              conf_data << "[#{section}]\r\n"
+              section.each do |option,value|
+                conf_data << "#{option}=#{value}\r\n"
+              end
+              conf_data << "\r\n"
+            end
+            on agent, "#{powershell_pre} -Command \"\$text = '#{conf_data}' | Set-Content '#{puppet_conf}'\""
+          else
+            
+          end
+        end
+      end
 
       # Installs Puppet and dependencies using rpm
       #
