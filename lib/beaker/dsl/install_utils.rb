@@ -569,7 +569,7 @@ module Beaker
       def configure_puppet(opts = {})
         hosts.each do |host|
           if host['platform'] =~ /windows/
-            puppet_conf = "C:\\ProgramData\\PuppetLabs\\puppet\\etc\\puppet.conf"
+            puppet_conf = "#{host['puppetpath']}\\puppet.conf"
             powershell_pre = "powershell.exe -InputFormat None -NoProfile -NonInteractive -NoLogo -ExecutionPolicy Bypass"
             conf_data = ''
             opts.each do |section,options|
@@ -581,7 +581,16 @@ module Beaker
             end
             on agent, "#{powershell_pre} -Command \"\$text = '#{conf_data}' | Set-Content '#{puppet_conf}'\""
           else
-            
+            puppet_conf = "#{host['puppetpath']}/puppet.conf"
+            conf_data = ''
+            opts.each do |section,options|
+              conf_data << "[#{section}]\n"
+              options.each do |option,value|
+                conf_data << "#{option}=#{value}\n"
+              end
+              conf_data << "\n"
+            end
+            on agent, "echo \"#{conf_data}\" > #{puppet_conf}"
           end
         end
       end
