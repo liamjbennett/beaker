@@ -35,11 +35,11 @@ module Windows
       h = Beaker::Options::OptionsHash.new
       if communicator =~ /bitvise/
         h.merge({
-          'puppetpath'    => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\etc",
-          'hieraconf'     => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\etc\\hiera.yaml",
+          'puppetpath'    => "C:\\ProgramData\\PuppetLabs\\puppet\\etc",
+          'hieraconf'     => "C:\\ProgramData\\PuppetLabs\\puppet\\etc\\hiera.yaml",
           'puppetvardir'  => 'C:\\ProgramData\\PuppetLabs\\puppet\\var',
           'distmoduledir' => 'C:\\ProgramData\\PuppetLabs\\puppet\\etc\\modules',
-          'puppetbindir'  => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\bin",
+          'puppetbindir'  => 'C:\\Program Files (x86)\\Puppet Labs\\Puppet\\bin',
           'pathseparator' => ';',
         })
       else
