@@ -573,11 +573,11 @@ module Beaker
             powershell_pre = "powershell.exe -InputFormat None -NoProfile -NonInteractive -NoLogo -ExecutionPolicy Bypass"
             conf_data = ''
             opts.each do |section,options|
-              conf_data << "[#{section}]\\r\\n"
+              conf_data << "[#{section}]`n"
               options.each do |option,value|
-                conf_data << "#{option}=#{value}\\r\\n"
+                conf_data << "#{option}=#{value}`n"
               end
-              conf_data << "\\r\\n"
+              conf_data << "`n"
             end
             on host, "#{powershell_pre} -Command \"\$text = \\\"#{conf_data}\\\"; Set-Content -path '#{puppet_conf}' -value \$text\""
           else
