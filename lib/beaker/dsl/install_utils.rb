@@ -579,7 +579,7 @@ module Beaker
               end
               conf_data << "\r\n"
             end
-            on host, "#{powershell_pre} -Command \"\$text = @'\n\r#{conf_data}'@ | Set-Content '#{puppet_conf}'\""
+            on host, "#{powershell_pre} -Command \"\$text = \\\"#{conf_data}\\\" | Set-Content '#{puppet_conf}'\""
           else
             puppet_conf = "#{host['puppetpath']}/puppet.conf"
             conf_data = ''
