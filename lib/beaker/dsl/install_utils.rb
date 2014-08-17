@@ -601,7 +601,7 @@ module Beaker
           powershell_pre = "powershell.exe -InputFormat None -NoProfile -NonInteractive -NoLogo -ExecutionPolicy Bypass"
           hosts_file = "C:\\Windows\\System32\\Drivers\\etc\\hosts"
           host_entry = "#{opts['ip']}`t`t#{opts['name']}"
-          on host, "#{powershell_pre} -Command \"\$text = \\\"#{host_entry}\\\"; Set-Content -path '#{hosts_file}' -value \$text\""
+          on host, "#{powershell_pre} -Command \"\$text = \\\"#{host_entry}\\\"; Add-Content -path '#{hosts_file}' -value \$text\""
         end
       end
 
