@@ -601,7 +601,7 @@ module Beaker
       def host_entry(host, opts = {})
         if host['platform'] =~ /windows/
           powershell_pre = "powershell.exe -InputFormat None -NoProfile -NonInteractive -NoLogo -ExecutionPolicy Bypass"
-          hosts_file = "C:\\Windows\\System32\\Drives\\etc\\hosts"
+          hosts_file = "C:\\Windows\\System32\\Drivers\\etc\\hosts"
           host_entry = "#{opts['ip']}`t`t#{opts['name']}"
           on host, "#{powershell_pre} -Command \"\$text = \\\"#{host_entry}\\\"; Set-Content -path '#{hosts_file}' -value \$text\""
         end
