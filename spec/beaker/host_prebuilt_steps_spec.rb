@@ -292,21 +292,10 @@ describe Beaker do
   context "sync_root_keys" do
     subject { dummy_class.new }
 
-    it "can sync keys on a solaris host" do
+    it "can sync keys on a solaris/eos host" do
       @platform = 'solaris'
 
-      expect( Beaker::Command ).to receive( :new ).with( sync_cmd % "| bash" ).exactly( 3 ).times
-
-      subject.sync_root_keys( hosts, options )
-
-    end
-
-    it "can sync keys on an eos host" do
-      @platform = 'eos'
-
-      expect( Beaker::Command ).to receive( :new ).with( sync_cmd % "> manage_root_authorized_keys" ).exactly( 3 ).times
-      expect( Beaker::Command ).to receive( :new ).with( "sed -i 's|mv -f $SSH_HOME/authorized_keys.tmp $SSH_HOME/authorized_keys|cp -f $SSH_HOME/authorized_keys.tmp $SSH_HOME/authorized_keys|' manage_root_authorized_keys" ).exactly( 3 ).times
-      expect( Beaker::Command ).to receive( :new ).with( "bash manage_root_authorized_keys" ).exactly( 3 ).times
+      expect( Beaker::Command ).to receive( :new ).with( sync_cmd % "bash" ).exactly( 3 ).times
 
       subject.sync_root_keys( hosts, options )
 
@@ -314,7 +303,7 @@ describe Beaker do
 
     it "can sync keys on a non-solaris host" do
 
-      expect( Beaker::Command ).to receive( :new ).with( sync_cmd % "| env PATH=/usr/gnu/bin:$PATH bash" ).exactly( 3 ).times
+      expect( Beaker::Command ).to receive( :new ).with( sync_cmd % "env PATH=/usr/gnu/bin:$PATH bash" ).exactly( 3 ).times
 
       subject.sync_root_keys( hosts, options )
 
@@ -449,7 +438,7 @@ describe Beaker do
 
     it "can set the environment on a windows host" do
       commands = [
-        "echo 'PermitUserEnvironment yes\n' >> /etc/sshd_config",
+        "echo '\nPermitUserEnvironment yes' >> /etc/sshd_config",
         "cygrunsrv -E sshd",
         "cygrunsrv -S sshd"
       ]
@@ -458,7 +447,7 @@ describe Beaker do
 
     it "can set the environment on an OS X host" do
       commands = [
-        "echo 'PermitUserEnvironment yes\n' >> /etc/sshd_config",
+        "echo '\nPermitUserEnvironment yes' >> /etc/sshd_config",
         "launchctl unload /System/Library/LaunchDaemons/ssh.plist",
         "launchctl load /System/Library/LaunchDaemons/ssh.plist"
       ]
@@ -467,7 +456,7 @@ describe Beaker do
 
     it "can set the environment on an ssh-based linux host" do
       commands = [
-        "echo 'PermitUserEnvironment yes\n' >> /etc/ssh/sshd_config",
+        "echo '\nPermitUserEnvironment yes' >> /etc/ssh/sshd_config",
         "service ssh restart"
       ]
       set_env_helper('ubuntu', commands)
@@ -475,7 +464,7 @@ describe Beaker do
 
     it "can set the environment on an sshd-based linux host" do
       commands = [
-          "echo 'PermitUserEnvironment yes\n' >> /etc/ssh/sshd_config",
+          "echo '\nPermitUserEnvironment yes' >> /etc/ssh/sshd_config",
           "/sbin/service sshd restart"
       ]
       set_env_helper('eos', commands)
@@ -483,7 +472,7 @@ describe Beaker do
 
     it "can set the environment on an sles host" do
       commands = [
-        "echo 'PermitUserEnvironment yes\n' >> /etc/ssh/sshd_config",
+        "echo '\nPermitUserEnvironment yes' >> /etc/ssh/sshd_config",
         "rcsshd restart"
       ]
       set_env_helper('sles', commands)
@@ -491,7 +480,7 @@ describe Beaker do
 
     it "can set the environment on a solaris host" do
       commands = [
-        "echo 'PermitUserEnvironment yes\n' >> /etc/ssh/sshd_config",
+        "echo '\nPermitUserEnvironment yes' >> /etc/ssh/sshd_config",
         "svcadm restart svc:/network/ssh:default"
       ]
       set_env_helper('solaris', commands)
@@ -499,7 +488,7 @@ describe Beaker do
 
     it "can set the environment on an aix host" do
       commands = [
-        "echo 'PermitUserEnvironment yes\n' >> /etc/ssh/sshd_config",
+        "echo '\nPermitUserEnvironment yes' >> /etc/ssh/sshd_config",
         "stopsrc -g ssh",
         "startsrc -g ssh"
       ]
@@ -520,6 +509,9 @@ describe Beaker do
       host_specific_commands_array.each do |command|
         expect( Beaker::Command ).to receive( :new ).with( command ).once
       end
+
+      expect( Beaker::Command ).to receive( :new ).with( "mkdir -p #{Pathname.new(host[:ssh_env_file]).dirname}" ).once
+      expect( Beaker::Command ).to receive( :new ).with( "chmod 0600 #{Pathname.new(host[:ssh_env_file]).dirname}" ).once
       expect( Beaker::Command ).to receive( :new ).with( "touch #{host[:ssh_env_file]}" ).once
       expect( host ).to receive( :add_env_var ).with( 'RUBYLIB', '$RUBYLIB' ).once
       expect( host ).to receive( :add_env_var ).with( 'PATH', '$PATH' ).once
@@ -527,7 +519,7 @@ describe Beaker do
         expect( host ).to receive( :add_env_var ).with( key, value ).once
       end
       expect( host ).to receive( :add_env_var ).with( 'CYGWIN', 'nodosfilewarning' ).once if platform_name =~ /windows/
-      expect( host ).to receive( :exec ).exactly( host_specific_commands_array.length + 1 ).times
+      expect( host ).to receive( :exec ).exactly( host_specific_commands_array.length + 3 ).times
 
       subject.set_env(host, options.merge( opts ))
     end

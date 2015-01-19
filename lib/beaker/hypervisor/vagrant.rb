@@ -22,6 +22,7 @@ module Beaker
       #HACK HACK HACK - add checks here to ensure that we have box + box_url
       #generate the VagrantFile
       v_file = "Vagrant.configure(\"2\") do |c|\n"
+      v_file << "  c.ssh.forward_agent = true\n" if options[:forward_ssh_agent] == true
       hosts.each do |host|
         host['ip'] ||= randip #use the existing ip, otherwise default to a random ip
         v_file << "  c.vm.define '#{host.name}' do |v|\n"
@@ -64,7 +65,7 @@ module Beaker
           stdout.read
         end
         #replace hostname with ip
-        ssh_config = ssh_config.gsub(/#{host.name}/, host['ip']) unless not host['ip']
+        ssh_config = ssh_config.gsub(/Host #{host.name}/, "Host #{host['ip']}") unless not host['ip']
         if host['platform'] =~ /windows/
           ssh_config = ssh_config.gsub(/127\.0\.0\.1/, host['ip']) unless not host['ip']
         end
@@ -162,12 +163,12 @@ module Beaker
             @logger.info(line)
           end
           if not wait_thr.value.success?
-            raise "Failed to exec 'vagrant #{args}'"
+            raise "Failed to exec 'vagrant #{args}'. Error was #{stderr.read}"
           end
           exit_status = wait_thr.value
         }
         if exit_status != 0
-          raise "Failed to execute vagrant_cmd ( #{args} )"
+          raise "Failed to execute vagrant_cmd ( #{args} ). Error was #{stderr.read}"
         end
       end
     end

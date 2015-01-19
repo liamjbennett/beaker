@@ -5,7 +5,7 @@ require 'beaker/hypervisor/ec2_helper'
 
 module Beaker
   # This is an alternate EC2 driver that implements direct API access using
-  # Amazon's AWS-SDK library: http://aws.amazon.com/documentation/sdkforruby/
+  # Amazon's AWS-SDK library: {http://aws.amazon.com/documentation/sdkforruby/ SDK For Ruby}
   #
   # It is built for full control, to reduce any other layers beyond the pure
   # vendor API.
@@ -116,7 +116,7 @@ module Beaker
     end
 
     # Provided an id return an instance object.
-    # Instance object will respond to methods described here: http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/EC2/Instance.html
+    # Instance object will respond to methods described here: {http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/EC2/Instance.html AWS Instance Object}.
     # @param [String] id The id of the instance to return
     # @return [AWS::EC2::Instance] An AWS::EC2 instance object
     def instance_by_id(id)
@@ -124,9 +124,40 @@ module Beaker
     end
 
     # Return all instances currently on ec2.
+    # @see AwsSdk#instance_by_id
     # @return [Array<AWS::EC2::Instance>] An array of AWS::EC2 instance objects
     def instances
       @ec2.instances
+    end
+
+    # Provided an id return a VPC object.
+    # VPC object will respond to methods described here: {http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/EC2/VPC.html AWS VPC Object}.
+    # @param [String] id The id of the VPC to return
+    # @return [AWS::EC2::VPC] An AWS::EC2 vpc object
+    def vpc_by_id(id)
+      @ec2.vpcs[id]
+    end
+
+    # Return all VPCs currently on ec2.
+    # @see AwsSdk#vpc_by_id
+    # @return [Array<AWS::EC2::VPC>] An array of AWS::EC2 vpc objects
+    def vpcs
+      @ec2.vpcs
+    end
+
+    # Provided an id return a security group object
+    # Security object will respond to methods described here: {http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/EC2/SecurityGroup.html AWS SecurityGroup Object}.
+    # @param [String] id The id of the security group to return
+    # @return [AWS::EC2::SecurityGroup] An AWS::EC2 security group object
+    def security_group_by_id(id)
+      @ec2.security_groups[id]
+    end
+
+    # Return all security groups currently on ec2.
+    # @see AwsSdk#security_goup_by_id
+    # @return [Array<AWS::EC2::SecurityGroup>] An array of AWS::EC2 security group objects
+    def security_groups
+      @ec2.security_groups
     end
 
     # Shutdown and destroy ec2 instances idenfitied by key that have been alive
@@ -138,7 +169,6 @@ module Beaker
       @logger.notify("aws-sdk: Kill Zombies! (keyname: #{key}, age: #{max_age} hrs)")
       #examine all available regions
       kill_count = 0
-      volume_count = 0
       time_now = Time.now.getgm #ec2 uses GM time
       @ec2.regions.each do |region|
         @logger.debug "Reviewing: #{region.name}"
@@ -150,17 +180,28 @@ module Beaker
               @logger.debug "Examining #{instance.id} (keyname: #{instance.key_name}, launch time: #{instance.launch_time}, status: #{instance.status})"
               if ((time_now - instance.launch_time) >  max_age*60*60) and instance.status.to_s !~ /terminated/
                 @logger.debug "Kill! #{instance.id}: #{instance.key_name} (Current status: #{instance.status})"
-                  instance.terminate()
-                  kill_count += 1
+                instance.terminate()
+                kill_count += 1
               end
             end
           rescue AWS::Core::Resource::NotFound, AWS::EC2::Errors => e
             @logger.debug "Failed to remove instance: #{instance.id}, #{e}"
           end
         end
-        # Occasionaly, tearing down ec2 instances leaves orphaned EBS volumes behind -- these stack up quickly.
-        # This simply looks for EBS volumes that are not in use
-        # Note: don't use volumes.each here as that funtion doesn't allow proper rescue from error states
+      end
+
+      @logger.notify "#{key}: Killed #{kill_count} instance(s)"
+    end
+
+    # Destroy any volumes marked 'available', INCLUDING THOSE YOU DON'T OWN!  Use with care.
+    def kill_zombie_volumes
+      # Occasionaly, tearing down ec2 instances leaves orphaned EBS volumes behind -- these stack up quickly.
+      # This simply looks for EBS volumes that are not in use
+      # Note: don't use volumes.each here as that funtion doesn't allow proper rescue from error states
+      @logger.notify("aws-sdk: Kill Zombie Volumes!")
+      volume_count = 0
+      @ec2.regions.each do |region|
+        @logger.debug "Reviewing: #{region.name}"
         volumes = @ec2.regions[region.name].volumes.map { |vol| vol.id }
         volumes.each do |vol|
           begin
@@ -175,7 +216,7 @@ module Beaker
           end
         end
       end
-      @logger.notify "#{key}: Killed #{kill_count} instance(s), freed #{volume_count} volume(s)"
+      @logger.notify "Freed #{volume_count} volume(s)"
 
     end
 
@@ -197,8 +238,8 @@ module Beaker
       @hosts.each do |host|
         amitype = host['vmname'] || host['platform']
         amisize = host['amisize'] || 'm1.small'
-        subnet_id = host['subnet_id'] || nil
-        vpc_id = host['vpc_id'] || nil
+        subnet_id = host['subnet_id'] || @options['subnet_id'] || nil
+        vpc_id = host['vpc_id'] || @options['vpc_id'] || nil
 
         if vpc_id and !subnet_id
           raise RuntimeError, "A subnet_id must be provided with a vpc_id"
@@ -215,7 +256,18 @@ module Beaker
         # Main region object for ec2 operations
         region = @ec2.regions[ami_region]
 
-        # Obtain the VPC object if it exists
+        # If we haven't defined a vpc_id then we use the default vpc for the provided region
+        if !vpc_id
+          @logger.notify("aws-sdk: filtering available vpcs in region by 'isDefault")
+          filtered_vpcs = region.client.describe_vpcs(:filters => [{:name => 'isDefault', :values => ['true']}])
+          if !filtered_vpcs[:vpc_set].empty?
+            vpc_id = filtered_vpcs[:vpc_set].first[:vpc_id]
+          else #there's no default vpc, use nil
+            vpc_id = nil
+          end
+        end
+
+        # Grab the vpc object based upon provided id
         vpc = vpc_id ? region.vpcs[vpc_id] : nil
 
         # Grab image object
@@ -243,6 +295,8 @@ module Beaker
           }
         end
 
+        security_group = ensure_group(vpc || region, Beaker::EC2Helper.amiports(host))
+
         # Launch the node, filling in the blanks from previous work.
         @logger.notify("aws-sdk: Launch instance")
         config = {
@@ -250,7 +304,7 @@ module Beaker
           :image_id => image_id,
           :monitoring_enabled => true,
           :key_pair => ensure_key_pair(region),
-          :security_groups => [ensure_group(vpc || region, Beaker::EC2Helper.amiports(host))],
+          :security_groups => [security_group],
           :instance_type => amisize,
           :disable_api_termination => false,
           :instance_initiated_shutdown_behavior => "terminate",
@@ -486,20 +540,20 @@ module Beaker
 
     # Return an existing group, or create new one
     #
-    # Accepts a region or VPC as input for checking & creation.
+    # Accepts a VPC as input for checking & creation.
     #
-    # @param rv [AWS::EC2::Region, AWS::EC2::VPC] the AWS region or vpc control object
+    # @param vpc [AWS::EC2::VPC] the AWS vpc control object
     # @param ports [Array<Number>] an array of port numbers
     # @return [AWS::EC2::SecurityGroup] created security group
     # @api private
-    def ensure_group(rv, ports)
+    def ensure_group(vpc, ports)
       @logger.notify("aws-sdk: Ensure security group exists for ports #{ports.to_s}, create if not")
       name = group_id(ports)
 
-      group = rv.security_groups.filter('group-name', name).first
+      group = vpc.security_groups.filter('group-name', name).first
 
       if group.nil?
-        group = create_group(rv, ports)
+        group = create_group(vpc, ports)
       end
 
       group

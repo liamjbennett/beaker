@@ -511,7 +511,8 @@ module Beaker
               on host, puppet("config set server #{master}")
               on host, puppet("config set certname #{host}")
               #run once to request cert
-              on host, puppet_agent('-t'), :acceptable_exit_codes => [1]
+              acceptable_codes = host['platform'] =~ /osx/ ? [1] : [0, 1]
+              on host, puppet_agent('-t'), :acceptable_exit_codes => acceptable_codes
             else
               answers = Beaker::Answers.create(opts[:pe_ver] || host['pe_ver'], hosts, opts)
               create_remote_file host, "#{host['working_dir']}/answers", answers.answer_string(host)
@@ -697,6 +698,51 @@ module Beaker
           on host, powershell("\$text = \\\"#{host_entry}\\\"; Add-Content -path '#{hosts_file}' -value \$text")
         else
           raise "nothing to do for #{host.name} on #{host['platform']}"
+        end
+      end
+
+      # Configure puppet.conf on the given host based upon a provided hash
+      # @example will configure /etc/puppet.conf on the puppet master.
+      #   config = {
+      #     'main' => {
+      #       'server'   => 'testbox.test.local',
+      #       'certname' => 'testbox.test.local',
+      #       'logdir'   => '/var/log/puppet',
+      #       'vardir'   => '/var/lib/puppet',
+      #       'ssldir'   => '/var/lib/puppet/ssl',
+      #       'rundir'   => '/var/run/puppet'
+      #     },
+      #     'agent' => {
+      #       'environment' => 'dev'
+      #     }
+      #   }
+      #   configure_puppet(master, config)
+      #
+      # @api dsl
+      # @return nil
+      def configure_puppet(host, opts = {})
+        if host['platform'] =~ /windows/
+          puppet_conf = "#{host['puppetpath']}\\puppet.conf"
+          conf_data = ''
+          opts.each do |section,options|
+            conf_data << "[#{section}]`n"
+            options.each do |option,value|
+              conf_data << "#{option}=#{value}`n"
+            end
+            conf_data << "`n"
+          end
+          on host, powershell("\$text = \\\"#{conf_data}\\\"; Set-Content -path '#{puppet_conf}' -value \$text")
+        else
+          puppet_conf = "#{host['puppetpath']}/puppet.conf"
+          conf_data = ''
+          opts.each do |section,options|
+            conf_data << "[#{section}]\n"
+            options.each do |option,value|
+              conf_data << "#{option}=#{value}\n"
+            end
+            conf_data << "\n"
+          end
+          on host, "echo \"#{conf_data}\" > #{puppet_conf}"
         end
       end
 
@@ -1110,6 +1156,50 @@ module Beaker
 
         else
           raise "No repository installation step for #{variant} yet..."
+        end
+      end
+
+      # Install development repo of the puppet-agent on the given host
+      #
+      # @param [Host] host An object implementing {Beaker::Hosts}'s interface
+      # @param [Hash{Symbol=>String}] opts An options hash
+      # @option opts [String] :version The version of puppet-agent to install
+      # @option opts [String] :copy_base_local Directory where puppet-agent artifact
+      #                       will be stored locally
+      #                       (default: 'tmp/repo_configs')
+      # @option opts [String] :copy_dir_external Directory where puppet-agent
+      #                       artifact will be pushed to on the external machine
+      #                       (default: '/root')
+      # @return nil
+      def install_puppetagent_dev_repo( host, opts )
+        opts[:copy_base_local]    ||= File.join('tmp', 'repo_configs')
+        opts[:copy_dir_external]  ||= File.join('/', 'root')
+        variant, version, arch, codename = host['platform'].to_array
+        release_path = "#{options[:dev_builds_url]}/puppet-agent/#{opts[:version]}/artifacts/"
+        copy_dir_local = File.join(opts[:copy_base_local], variant)
+        onhost_copy_base = opts[:copy_dir_external]
+
+        case variant
+        when /^(fedora|el|centos)$/
+          release_path << "el/#{version}/products/#{arch}"
+          release_file = "puppet-agent-#{opts[:version]}-1.#{arch}.rpm"
+        when /^(debian|ubuntu|cumulus)$/
+          release_path << "deb/#{codename}"
+          release_file = "puppet-agent_#{opts[:version]}-1_#{arch}.deb"
+        else
+          raise "No repository installation step for #{variant} yet..."
+        end
+
+        onhost_copied_file = File.join(onhost_copy_base, release_file)
+        fetch_http_file( release_path, release_file, copy_dir_local)
+        scp_to host, File.join(copy_dir_local, release_file), onhost_copy_base
+
+        case variant
+        when /^(fedora|el|centos)$/
+          on host, "rpm -ivh #{onhost_copied_file}"
+        when /^(debian|ubuntu|cumulus)$/
+          on host, "dpkg -i --force-all #{onhost_copied_file}"
+          on host, "apt-get update"
         end
       end
 

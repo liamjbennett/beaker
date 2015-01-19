@@ -1,3 +1,5 @@
+require 'pathname'
+
 [ 'command', "dsl/patterns" ].each do |lib|
   require "beaker/#{lib}"
 end
@@ -18,7 +20,7 @@ module Beaker
     ETC_HOSTS_PATH = "/etc/hosts"
     ETC_HOSTS_PATH_SOLARIS = "/etc/inet/hosts"
     ROOT_KEYS_SCRIPT = "https://raw.githubusercontent.com/puppetlabs/puppetlabs-sshkeys/master/templates/scripts/manage_root_authorized_keys"
-    ROOT_KEYS_SYNC_CMD = "curl -k -o - -L #{ROOT_KEYS_SCRIPT} %s"
+    ROOT_KEYS_SYNC_CMD = "curl -k -o - -L #{ROOT_KEYS_SCRIPT} | %s"
     APT_CFG = %q{ Acquire::http::Proxy "http://proxy.puppetlabs.net:3128/"; }
     IPS_PKG_REPO="http://solaris-11-internal-repo.delivery.puppetlabs.net"
 
@@ -126,18 +128,10 @@ module Beaker
       block_on host do |host|
       logger.notify "Sync root authorized_keys from github on #{host.name}"
         # Allow all exit code, as this operation is unlikely to cause problems if it fails.
-        if host['platform'].include? 'solaris'
-          host.exec(Command.new(ROOT_KEYS_SYNC_CMD % "| bash"), :acceptable_exit_codes => (0..255))
-        elsif host['platform'].include? 'eos'
-          # this is a terrible terrible thing that I'm already in the process of fixing
-          # the only reason that I include this terrible implementation is that the
-          # fix relies on changes in another repo, so I'm not sure how long it'll take
-          # to get those in
-          host.exec(Command.new(ROOT_KEYS_SYNC_CMD % "> manage_root_authorized_keys"), :acceptable_exit_codes => (0..255))
-          host.exec(Command.new("sed -i 's|mv -f $SSH_HOME/authorized_keys.tmp $SSH_HOME/authorized_keys|cp -f $SSH_HOME/authorized_keys.tmp $SSH_HOME/authorized_keys|' manage_root_authorized_keys"), :acceptable_exit_codes => (0..255))
-          host.exec(Command.new("bash manage_root_authorized_keys"), :acceptable_exit_codes => (0..255))
+        if host['platform'] =~ /solaris|eos/
+          host.exec(Command.new(ROOT_KEYS_SYNC_CMD % "bash"), :acceptable_exit_codes => (0..255))
         else
-          host.exec(Command.new(ROOT_KEYS_SYNC_CMD % "| env PATH=/usr/gnu/bin:$PATH bash"), :acceptable_exit_codes => (0..255))
+          host.exec(Command.new(ROOT_KEYS_SYNC_CMD % "env PATH=/usr/gnu/bin:$PATH bash"), :acceptable_exit_codes => (0..255))
         end
       end
     rescue => e
@@ -479,39 +473,44 @@ module Beaker
         logger.debug("setting local environment on #{host.name}")
         case host['platform']
         when /windows/
-          host.exec(Command.new("echo 'PermitUserEnvironment yes\n' >> /etc/sshd_config"))
+          host.exec(Command.new("echo '\nPermitUserEnvironment yes' >> /etc/sshd_config"))
           host.exec(Command.new("cygrunsrv -E sshd"))
           host.exec(Command.new("cygrunsrv -S sshd"))
           env['CYGWIN'] = 'nodosfilewarning'
         when /osx/
-          host.exec(Command.new("echo 'PermitUserEnvironment yes\n' >> /etc/sshd_config"))
+          host.exec(Command.new("echo '\nPermitUserEnvironment yes' >> /etc/sshd_config"))
           host.exec(Command.new("launchctl unload /System/Library/LaunchDaemons/ssh.plist"))
           host.exec(Command.new("launchctl load /System/Library/LaunchDaemons/ssh.plist"))
         when /debian|ubuntu|cumulus/
-          host.exec(Command.new("echo 'PermitUserEnvironment yes\n' >> /etc/ssh/sshd_config"))
+          host.exec(Command.new("echo '\nPermitUserEnvironment yes' >> /etc/ssh/sshd_config"))
           host.exec(Command.new("service ssh restart"))
         when /el-|centos|fedora|redhat|oracle|scientific|eos/
-          host.exec(Command.new("echo 'PermitUserEnvironment yes\n' >> /etc/ssh/sshd_config"))
+          host.exec(Command.new("echo '\nPermitUserEnvironment yes' >> /etc/ssh/sshd_config"))
           host.exec(Command.new("/sbin/service sshd restart"))
         when /sles/
-          host.exec(Command.new("echo 'PermitUserEnvironment yes\n' >> /etc/ssh/sshd_config"))
+          host.exec(Command.new("echo '\nPermitUserEnvironment yes' >> /etc/ssh/sshd_config"))
           host.exec(Command.new("rcsshd restart"))
         when /solaris/
-          host.exec(Command.new("echo 'PermitUserEnvironment yes\n' >> /etc/ssh/sshd_config"))
+          host.exec(Command.new("echo '\nPermitUserEnvironment yes' >> /etc/ssh/sshd_config"))
           host.exec(Command.new("svcadm restart svc:/network/ssh:default"))
         when /aix/
-          host.exec(Command.new("echo 'PermitUserEnvironment yes\n' >> /etc/ssh/sshd_config"))
+          host.exec(Command.new("echo '\nPermitUserEnvironment yes' >> /etc/ssh/sshd_config"))
           host.exec(Command.new("stopsrc -g ssh"))
           host.exec(Command.new("startsrc -g ssh"))
         end
+
         #ensure that ~/.ssh/environment exists
+        host.exec(Command.new("mkdir -p #{Pathname.new(host[:ssh_env_file]).dirname}"))
+        host.exec(Command.new("chmod 0600 #{Pathname.new(host[:ssh_env_file]).dirname}"))
         host.exec(Command.new("touch #{host[:ssh_env_file]}"))
+
         #add the constructed env vars to this host
         host.add_env_var('RUBYLIB', '$RUBYLIB')
         host.add_env_var('PATH', '$PATH')
         env.each_pair do |var, value|
           host.add_env_var(var, value)
         end
+
         #close the host to re-establish the connection with the new sshd settings
         host.close
       end

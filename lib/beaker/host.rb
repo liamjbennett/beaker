@@ -48,7 +48,7 @@ module Beaker
       # a explict relationship between our defaults, our setup steps and how they're
       # related through 'type' and the differences between the assumption of our two
       # configurations we have for many of our products
-      type = is_pe? ? :pe : :foss
+      type = @options.get_type
       @defaults = merge_defaults_for_type @options, type
       pkg_initialize
     end
@@ -312,7 +312,7 @@ module Beaker
       ignore_re = nil
       if has_ignore
         ignore_arr = Array(options[:ignore]).map do |entry|
-          "((\/|\\A)#{entry}(\/|\\z))".sub(/\./, "\.")
+          "((\/|\\A)#{entry}(\/|\\z))".gsub(/\./, '\.')
         end
         ignore_re = Regexp.new(ignore_arr.join('|'))
       end
@@ -358,9 +358,9 @@ module Beaker
         dir_source.each do |s|
           s_path = Pathname.new(s)
           if s_path.absolute?
-            file_path = File.join(target, s.gsub(source,''))
+            file_path = File.join(target, File.dirname(s).gsub(source,''))
           else
-            file_path = File.join(target, s)
+            file_path = File.join(target, File.dirname(s))
           end
           result = connection.scp_to(s, file_path, options, $dry_run)
           @logger.trace result.stdout

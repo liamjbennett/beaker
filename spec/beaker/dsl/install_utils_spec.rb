@@ -372,7 +372,7 @@ describe ClassMixedWithDSLInstallUtils do
       expect( subject ).to receive( :on ).with( hosts[2], /puppet config set certname/ ).once
       expect( subject ).to receive( :on ).with( hosts[3], /puppet config set certname/ ).once
       expect( subject ).to receive( :on ).with( hosts[2], /puppet agent -t/, :acceptable_exit_codes => [1] ).once
-      expect( subject ).to receive( :on ).with( hosts[3], /puppet agent -t/, :acceptable_exit_codes => [1] ).once
+      expect( subject ).to receive( :on ).with( hosts[3], /puppet agent -t/, :acceptable_exit_codes => [0, 1] ).once
       #sign certificate per-host
       expect( subject ).to receive( :sign_certificate_for ).with( hosts[0] ).once
       expect( subject ).to receive( :sign_certificate_for ).with( hosts[1] ).once
@@ -542,6 +542,33 @@ describe ClassMixedWithDSLInstallUtils do
         allow(subject).to receive(:on).with(host, /gem environment/).and_return result
         expect(subject).to receive(:on).with(host, /gem install/)
         subject.install_puppet :default_action => 'gem_install'
+      end
+    end
+  end
+
+  describe 'configure_puppet' do
+    before do
+      subject.stub(:on).and_return(Beaker::Result.new({},''))
+    end
+    context 'on debian' do
+      let(:platform) { 'debian-7-amd64' }
+      let(:host) { make_host('testbox.test.local', :platform => 'debian-7-amd64') }
+      it 'it sets the puppet.conf file to the provided config' do
+        config = { 'main' => {'server' => 'testbox.test.local'} }
+        expect(subject).to receive(:on).with(host, "echo \"[main]\nserver=testbox.test.local\n\n\" > /etc/puppet/puppet.conf")
+        subject.configure_puppet(host, config)
+      end
+    end
+    context 'on windows' do
+      let(:platform) { 'windows-2008R2-amd64' }
+      let(:host) { make_host('testbox.test.local', :platform => 'windows-2008R2-amd64') }
+      it 'it sets the puppet.conf file to the provided config' do
+        config = { 'main' => {'server' => 'testbox.test.local'} }
+        expect(subject).to receive(:on) do |host, command|
+          expect(command.command).to eq('powershell.exe')
+          expect(command.args).to eq(" -ExecutionPolicy Bypass -InputFormat None -NoLogo -NoProfile -NonInteractive -Command \"$text = \\\"[main]`nserver=testbox.test.local`n`n\\\"; Set-Content -path '`cygpath -smF 35`/PuppetLabs/puppet/etc\\puppet.conf' -value $text\"")
+        end
+        subject.configure_puppet(host, config)
       end
     end
   end
@@ -808,6 +835,86 @@ describe ClassMixedWithDSLInstallUtils do
     describe "When host is a redhat-like platform" do
       let( :platform ) { Beaker::Platform.new('el-7-i386') }
       include_examples "install-dev-repo"
+    end
+
+  end
+
+  describe '#install_puppetagent_dev_repo' do
+
+    it 'raises an exception when host platform is unsupported' do
+      platform = Object.new()
+      allow(platform).to receive(:to_array) { ['ptan', '5', 'x4']}
+      host = basic_hosts.first
+      host['platform'] = platform
+      opts = { :version => '0.1.0' }
+      allow( subject ).to receive( :options ).and_return( {} )
+
+      expect{
+        subject.install_puppetagent_dev_repo( host, opts )
+      }.to raise_error(RuntimeError, /No repository installation step for/)
+    end
+
+    it 'runs the correct install for el-based platforms' do
+      platform = Object.new()
+      allow(platform).to receive(:to_array) { ['el', '5', 'x4']}
+      host = basic_hosts.first
+      host['platform'] = platform
+      opts = { :version => '0.1.0' }
+      allow( subject ).to receive( :options ).and_return( {} )
+
+      expect(subject).to receive(:fetch_http_file).once.with(/\/el\//, /-agent-/, /el/)
+      expect(subject).to receive(:scp_to).once.with(host, /-agent-/, "/root")
+      expect(subject).to receive(:on).once.with(host, /rpm\ -ivh/)
+
+      subject.install_puppetagent_dev_repo( host, opts )
+    end
+
+    it 'runs the correct install for debian-based platforms' do
+      platform = Object.new()
+      allow(platform).to receive(:to_array) { ['debian', '5', 'x4']}
+      host = basic_hosts.first
+      host['platform'] = platform
+      opts = { :version => '0.1.0' }
+      allow( subject ).to receive( :options ).and_return( {} )
+
+      expect(subject).to receive(:fetch_http_file).once.with(/\/deb\//, /-agent_/, /deb/)
+      expect(subject).to receive(:scp_to).once.with(host, /-agent_/, "/root")
+      expect(subject).to receive(:on).ordered.with(host, /dpkg\ -i\ --force-all/)
+      expect(subject).to receive(:on).ordered.with(host, /apt-get\ update/)
+
+      subject.install_puppetagent_dev_repo( host, opts )
+    end
+
+    it 'allows you to override the local copy directory' do
+      platform = Object.new()
+      allow(platform).to receive(:to_array) { ['debian', '5', 'x4']}
+      host = basic_hosts.first
+      host['platform'] = platform
+      opts = { :version => '0.1.0', :copy_base_local => 'face' }
+      allow( subject ).to receive( :options ).and_return( {} )
+
+      expect(subject).to receive(:fetch_http_file).once.with(/\/deb\//, /-agent_/, /face/)
+      expect(subject).to receive(:scp_to).once.with(host, /face/, "/root")
+      expect(subject).to receive(:on).ordered.with(host, /dpkg\ -i\ --force-all/)
+      expect(subject).to receive(:on).ordered.with(host, /apt-get\ update/)
+
+      subject.install_puppetagent_dev_repo( host, opts )
+    end
+
+    it 'allows you to override the external copy directory' do
+      platform = Object.new()
+      allow(platform).to receive(:to_array) { ['debian', '5', 'x4']}
+      host = basic_hosts.first
+      host['platform'] = platform
+      opts = { :version => '0.1.0', :copy_dir_external => 'muppetsB' }
+      allow( subject ).to receive( :options ).and_return( {} )
+
+      expect(subject).to receive(:fetch_http_file).once.with(/\/deb\//, /-agent_/, /deb/)
+      expect(subject).to receive(:scp_to).once.with(host, /-agent_/, /muppetsB/)
+      expect(subject).to receive(:on).ordered.with(host, /dpkg\ -i\ --force-all/)
+      expect(subject).to receive(:on).ordered.with(host, /apt-get\ update/)
+
+      subject.install_puppetagent_dev_repo( host, opts )
     end
 
   end
