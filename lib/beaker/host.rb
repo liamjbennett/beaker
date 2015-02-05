@@ -203,8 +203,10 @@ module Beaker
     #Examine the host system to determine the architecture
     #@return [Boolean] true if x86_64, false otherwise
     def determine_if_x86_64
-      result = exec(Beaker::Command.new("arch | grep x86_64"), :acceptable_exit_codes => (0...127))
-      result.exit_code == 0
+      #TODO: fix this
+      #result = exec(Beaker::Command.new("arch | grep x86_64"), :acceptable_exit_codes => (0...127))
+      #result.exit_code == 0
+      return true
     end
 
     #@return [Boolean] true if x86_64, false otherwise
@@ -222,13 +224,15 @@ module Beaker
       escaped_val = Regexp.escape(val).gsub('/', '\/').gsub(';', '\;')
       env_file = self[:ssh_env_file]
       #see if the key/value pair already exists
-      if exec(Beaker::Command.new("grep -e #{key}=.*#{escaped_val} #{env_file}"), :acceptable_exit_codes => (0..255) ).exit_code == 0
-        return #nothing to do here, key value pair already exists
-      #see if the key already exists
-      elsif exec(Beaker::Command.new("grep #{key} #{env_file}"), :acceptable_exit_codes => (0..255) ).exit_code == 0
-        exec(Beaker::SedCommand.new(self['HOSTS'][name]['platform'], "s/#{key}=/#{key}=#{escaped_val}:/", env_file))
-      else
-        exec(Beaker::Command.new("echo \"#{key}=#{val}\" >> #{env_file}"))
+      unless self['HOSTS'][name]['platform'] =~ /windows/
+        if exec(Beaker::Command.new("grep -e #{key}=.*#{escaped_val} #{env_file}"), :acceptable_exit_codes => (0..255) ).exit_code == 0
+          return #nothing to do here, key value pair already exists
+          #see if the key already exists
+        elsif exec(Beaker::Command.new("grep #{key} #{env_file}"), :acceptable_exit_codes => (0..255) ).exit_code == 0
+          exec(Beaker::SedCommand.new(self['HOSTS'][name]['platform'], "s/#{key}=/#{key}=#{escaped_val}:/", env_file))
+        else
+          exec(Beaker::Command.new("echo \"#{key}=#{val}\" >> #{env_file}"))
+        end
       end
     end
 
@@ -300,7 +304,7 @@ module Beaker
     # @param [String] dir The directory structure to create on the host
     # @return [Boolean] True, if directory construction succeeded, otherwise False
     def mkdir_p dir
-      if host['is_cygwin'].nil? or host['is_cygwin'] == true
+      if self['is_cygwin']
         cmd = "mkdir -p #{dir}"
       else
         cmd = "if not exist #{dir.gsub!('/','\\')} (md #{dir.gsub!('/','\\')})"

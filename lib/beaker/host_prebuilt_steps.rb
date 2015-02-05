@@ -13,7 +13,7 @@ module Beaker
     SLEEPWAIT = 5
     TRIES = 5
     UNIX_PACKAGES = ['curl', 'ntpdate']
-    WINDOWS_PACKAGES = ['curl']
+    WINDOWS_PACKAGES = [] #TODO: really????
     SLES_PACKAGES = ['curl', 'ntp']
     DEBIAN_PACKAGES = ['curl', 'ntpdate', 'lsb-release']
     CUMULUS_PACKAGES = ['addons', 'ntpdate', 'lsb-release']
@@ -285,7 +285,11 @@ module Beaker
     # @param [Host] host the host to act upon
     # @param [String] etc_hosts The string to append to the /etc/hosts file
     def set_etc_hosts(host, etc_hosts)
-      host.exec(Command.new("echo '#{etc_hosts}' > /etc/hosts"))
+      if host['platform'] =~ /windows/
+
+      else
+        host.exec(Command.new("echo '#{etc_hosts}' > /etc/hosts"))
+      end
     end
 
     #Make it possible to log in as root by copying the current users ssh keys to the root account
@@ -297,8 +301,12 @@ module Beaker
       block_on host do |host|
         logger.debug "Give root a copy of current user's keys, on #{host.name}"
         if host['platform'] =~ /windows/
-          host.exec(Command.new('cp -r .ssh /cygdrive/c/Users/Administrator/.'))
-          host.exec(Command.new('chown -R Administrator /cygdrive/c/Users/Administrator/.ssh'))
+          if host['is_cygwin']
+            host.exec(Command.new('cp -r .ssh /cygdrive/c/Users/Administrator/.'))
+            host.exec(Command.new('chown -R Administrator /cygdrive/c/Users/Administrator/.ssh'))
+          else
+            #TODO
+          end
         elsif host['platform'] =~ /osx/
           host.exec(Command.new('sudo cp -r .ssh /var/root/.'), {:pty => true})
         else
@@ -337,6 +345,8 @@ module Beaker
         if host['platform'] =~ /osx/
           host.exec(Command.new("sudo sed -i '' 's/#PermitRootLogin no/PermitRootLogin Yes/g' /etc/sshd_config"))
           host.exec(Command.new("sudo sed -i '' 's/#PermitRootLogin yes/PermitRootLogin Yes/g' /etc/sshd_config"))
+        elsif host['platform'] =~ /windows/
+
         else
           host.exec(Command.new("sudo su -c \"sed -ri 's/^#?PermitRootLogin no|^#?PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config\""), {:pty => true})
         end
@@ -479,10 +489,14 @@ module Beaker
         logger.debug("setting local environment on #{host.name}")
         case host['platform']
         when /windows/
-          host.exec(Command.new("echo '\nPermitUserEnvironment yes' >> /etc/sshd_config"))
-          host.exec(Command.new("cygrunsrv -E sshd"))
-          host.exec(Command.new("cygrunsrv -S sshd"))
-          env['CYGWIN'] = 'nodosfilewarning'
+          if host['is_cygwin']
+            host.exec(Command.new("echo '\nPermitUserEnvironment yes' >> /etc/sshd_config"))
+            host.exec(Command.new("cygrunsrv -E sshd"))
+            host.exec(Command.new("cygrunsrv -S sshd"))
+            env['CYGWIN'] = 'nodosfilewarning'
+          else
+           #TODO
+          end
         when /osx/
           host.exec(Command.new("echo '\nPermitUserEnvironment yes' >> /etc/sshd_config"))
           host.exec(Command.new("launchctl unload /System/Library/LaunchDaemons/ssh.plist"))
@@ -506,9 +520,18 @@ module Beaker
         end
 
         #ensure that ~/.ssh/environment exists
-        host.exec(Command.new("mkdir -p #{Pathname.new(host[:ssh_env_file]).dirname}"))
-        host.exec(Command.new("chmod 0600 #{Pathname.new(host[:ssh_env_file]).dirname}"))
-        host.exec(Command.new("touch #{host[:ssh_env_file]}"))
+        case host['platform']
+        when /windows/
+          if host['is_cygwin']
+            host.exec(Command.new("mkdir -p #{Pathname.new(host[:ssh_env_file]).dirname}"))
+            host.exec(Command.new("chmod 0600 #{Pathname.new(host[:ssh_env_file]).dirname}"))
+            host.exec(Command.new("touch #{host[:ssh_env_file]}"))
+          end
+        else
+          host.exec(Command.new("mkdir -p #{Pathname.new(host[:ssh_env_file]).dirname}"))
+          host.exec(Command.new("chmod 0600 #{Pathname.new(host[:ssh_env_file]).dirname}"))
+          host.exec(Command.new("touch #{host[:ssh_env_file]}"))
+        end
 
         #add the constructed env vars to this host
         host.add_env_var('RUBYLIB', '$RUBYLIB')

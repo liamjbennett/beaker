@@ -690,8 +690,12 @@ module Beaker
           end
 
           # Certain install paths may not create the config dirs/files needed
-          on host, "mkdir -p #{host['puppetpath']}"
-          on host, "echo '' >> #{host['hieraconf']}"
+          if host['platform'] =~ /windows/
+            #TODO
+          else
+            on host, "mkdir -p #{host['puppetpath']}"
+            on host, "echo '' >> #{host['hieraconf']}"
+          end
         end
         nil
       end
@@ -820,6 +824,9 @@ module Beaker
 
           on host, "set PATH=\"%PATH%;#{host['puppetbindir']}\""
           on host, "setx PATH \"%PATH%;#{host['puppetbindir']}\""
+
+          host.connection.close
+          host.connection.connect
 
           on host, powershell("$webclient = New-Object System.Net.WebClient;  $webclient.DownloadFile('#{link}','#{dest}')")
 
@@ -1333,7 +1340,9 @@ module Beaker
           else
             _, module_name = parse_for_modulename( source )
           end
-          scp_to host, source, File.join(target_module_dir, module_name), {:ignore => ignore_list}
+          #scp_to host, source, File.join(target_module_dir, module_name), {:ignore => ignore_list}
+          on host, "if not exist \"#{target_module_dir}\\#{module_name}\" ( mkdir #{target_module_dir}\\#{module_name} )"
+          scp_to host, source, "#{target_module_dir}\\#{module_name}", {:ignore => ignore_list}
         end
       end
       alias :copy_root_module_to :copy_module_to
@@ -1452,6 +1461,83 @@ module Beaker
         ignore_list << '.' unless ignore_list.include? '.'
         ignore_list << '..' unless ignore_list.include? '..'
         ignore_list
+      end
+
+      # Fix for PUP-2365
+      def install_forge_cert_on(host)
+        geotrust_global_ca = <<-CERT.gsub(/^ {8}/, '')
+        -----BEGIN CERTIFICATE-----
+        MIIDVDCCAjygAwIBAgIDAjRWMA0GCSqGSIb3DQEBBQUAMEIxCzAJBgNVBAYTAlVT
+        MRYwFAYDVQQKEw1HZW9UcnVzdCBJbmMuMRswGQYDVQQDExJHZW9UcnVzdCBHbG9i
+        YWwgQ0EwHhcNMDIwNTIxMDQwMDAwWhcNMjIwNTIxMDQwMDAwWjBCMQswCQYDVQQG
+        EwJVUzEWMBQGA1UEChMNR2VvVHJ1c3QgSW5jLjEbMBkGA1UEAxMSR2VvVHJ1c3Qg
+        R2xvYmFsIENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2swYYzD9
+        9BcjGlZ+W988bDjkcbd4kdS8odhM+KhDtgPpTSEHCIjaWC9mOSm9BXiLnTjoBbdq
+        fnGk5sRgprDvgOSJKA+eJdbtg/OtppHHmMlCGDUUna2YRpIuT8rxh0PBFpVXLVDv
+        iS2Aelet8u5fa9IAjbkU+BQVNdnARqN7csiRv8lVK83Qlz6cJmTM386DGXHKTubU
+        1XupGc1V3sjs0l44U+VcT4wt/lAjNvxm5suOpDkZALeVAjmRCw7+OC7RHQWa9k0+
+        bw8HHa8sHo9gOeL6NlMTOdReJivbPagUvTLrGAMoUgRx5aszPeE4uwc2hGKceeoW
+        MPRfwCvocWvk+QIDAQABo1MwUTAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTA
+        ephojYn7qwVkDBF9qn1luMrMTjAfBgNVHSMEGDAWgBTAephojYn7qwVkDBF9qn1l
+        uMrMTjANBgkqhkiG9w0BAQUFAAOCAQEANeMpauUvXVSOKVCUn5kaFOSPeCpilKIn
+        Z57QzxpeR+nBsqTP3UEaBU6bS+5Kb1VSsyShNwrrZHYqLizz/Tt1kL/6cdjHPTfS
+        tQWVYrmm3ok9Nns4d0iXrKYgjy6myQzCsplFAMfOEVEiIuCl6rYVSAlk6l5PdPcF
+        PseKUgzbFbS9bZvlxrFUaKnjaZC2mqUPuLk/IH2uSrW4nOQdtqvmlKXBx4Ot2/Un
+        hw4EbNX/3aBd7YdStysVAq45pmp06drE57xNNB6pXE0zX5IJL4hmXXeXxx12E6nV
+        5fEWCRE11azbJHFwLJhWC9kXtNHjUStedejV0NxPNO3CBWaAocvmMw==
+        -----END CERTIFICATE-----
+        CERT
+
+        create_remote_file(host, "C:\\Windows\\Temp\\geotrustglobal.pem", geotrust_global_ca)
+        on host, "certutil -v -addstore Root C:\\Windows\\Temp\\geotrustglobal.pem"
+
+        geotrust_primary_ca_g2 = <<-CERT.gsub(/^ {8}/, '')
+        -----BEGIN CERTIFICATE-----
+        MIICrjCCAjWgAwIBAgIQPLL0SAoA4v7rJDteYD7DazAKBggqhkjOPQQDAzCBmDEL
+        MAkGA1UEBhMCVVMxFjAUBgNVBAoTDUdlb1RydXN0IEluYy4xOTA3BgNVBAsTMChj
+        KSAyMDA3IEdlb1RydXN0IEluYy4gLSBGb3IgYXV0aG9yaXplZCB1c2Ugb25seTE2
+        MDQGA1UEAxMtR2VvVHJ1c3QgUHJpbWFyeSBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0
+        eSAtIEcyMB4XDTA3MTEwNTAwMDAwMFoXDTM4MDExODIzNTk1OVowgZgxCzAJBgNV
+        BAYTAlVTMRYwFAYDVQQKEw1HZW9UcnVzdCBJbmMuMTkwNwYDVQQLEzAoYykgMjAw
+        NyBHZW9UcnVzdCBJbmMuIC0gRm9yIGF1dGhvcml6ZWQgdXNlIG9ubHkxNjA0BgNV
+        BAMTLUdlb1RydXN0IFByaW1hcnkgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkgLSBH
+        MjB2MBAGByqGSM49AgEGBSuBBAAiA2IABBWx6P0DFUPlrOuHNxFi79KDNlJ9RVcL
+        So17VDs6bl8VAsBQps8lL33KSLjHUGMcKiEIfJo22Av+0SbFWDEwKCXzXV2juLal
+        tJLtbCyf691DiaI8S0iRHVDsJt/WYC69IaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAO
+        BgNVHQ8BAf8EBAMCAQYwHQYDVR0OBBYEFBVfNVdRVfslsq0DafwBo/q+EVXVMAoG
+        CCqGSM49BAMDA2cAMGQCMGSWWaboCd6LuvpaiIjwH5HTRqjySkwCY/tsXzjbLkGT
+        qQ7mndwxHLKgpxgceeHHNgIwOlavmnRs9vuD4DPTCF+hnMJbn0bWtsuRBmOiBucz
+        rD6ogRLQy7rQkgu2npaqBA+K
+        -----END CERTIFICATE-----
+        CERT
+
+        create_remote_file(host, "C:\\Windows\\Temp\\geotrust_primary_g2.pem", geotrust_global_ca)
+        on host, "certutil -v -addstore Root C:\\Windows\\Temp\\geotrust_primary_g2.pem"
+
+        equifax_cert = <<-CERT.gsub(/^ {8}/, '')
+        -----BEGIN CERTIFICATE-----
+        MIIDIDCCAomgAwIBAgIENd70zzANBgkqhkiG9w0BAQUFADBOMQswCQYDVQQGEwJV
+        UzEQMA4GA1UEChMHRXF1aWZheDEtMCsGA1UECxMkRXF1aWZheCBTZWN1cmUgQ2Vy
+        dGlmaWNhdGUgQXV0aG9yaXR5MB4XDTk4MDgyMjE2NDE1MVoXDTE4MDgyMjE2NDE1
+        MVowTjELMAkGA1UEBhMCVVMxEDAOBgNVBAoTB0VxdWlmYXgxLTArBgNVBAsTJEVx
+        dWlmYXggU2VjdXJlIENlcnRpZmljYXRlIEF1dGhvcml0eTCBnzANBgkqhkiG9w0B
+        AQEFAAOBjQAwgYkCgYEAwV2xWGcIYu6gmi0fCG2RFGiYCh7+2gRvE4RiIcPRfM6f
+        BeC4AfBONOziipUEZKzxa1NfBbPLZ4C/QgKO/t0BCezhABRP/PvwDN1Dulsr4R+A
+        cJkVV5MW8Q+XarfCaCMczE1ZMKxRHjuvK9buY0V7xdlfUNLjUA86iOe/FP3gx7kC
+        AwEAAaOCAQkwggEFMHAGA1UdHwRpMGcwZaBjoGGkXzBdMQswCQYDVQQGEwJVUzEQ
+        MA4GA1UEChMHRXF1aWZheDEtMCsGA1UECxMkRXF1aWZheCBTZWN1cmUgQ2VydGlm
+        aWNhdGUgQXV0aG9yaXR5MQ0wCwYDVQQDEwRDUkwxMBoGA1UdEAQTMBGBDzIwMTgw
+        ODIyMTY0MTUxWjALBgNVHQ8EBAMCAQYwHwYDVR0jBBgwFoAUSOZo+SvSspXXR9gj
+        IBBPM5iQn9QwHQYDVR0OBBYEFEjmaPkr0rKV10fYIyAQTzOYkJ/UMAwGA1UdEwQF
+        MAMBAf8wGgYJKoZIhvZ9B0EABA0wCxsFVjMuMGMDAgbAMA0GCSqGSIb3DQEBBQUA
+        A4GBAFjOKer89961zgK5F7WF0bnj4JXMJTENAKaSbn+2kmOeUJXRmm/kEd5jhW6Y
+        7qj/WsjTVbJmcVfewCHrPSqnI0kBBIZCe/zuf6IWUrVnZ9NA2zsmWLIodz2uFHdh
+        1voqZiegDfqnc1zqcPGUIWVEX/r87yloqaKHee9570+sB3c4
+        -----END CERTIFICATE-----
+        CERT
+
+        create_remote_file(host, "C:\\Windows\\Temp\\equifax.pem", equifax_cert)
+        on host, "certutil -v -addstore Root C:\\Windows\\Temp\\equifax.pem"
       end
     end
   end

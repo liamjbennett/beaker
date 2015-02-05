@@ -19,8 +19,8 @@ module PSWindows
       h.merge({
         'user'          => 'Administrator',
         'group'         => 'Administrators',
-        'distmoduledir' => 'C:\\ProgramData\\PuppetLabs\\puppet\\etc\\modules',
-        'sitemoduledir'     => 'C:\\usr\\share\\puppet\\modules',
+        'distmoduledir' => "C:\\ProgramData\\PuppetLabs\\puppet\\etc\\modules",
+        'sitemoduledir' => "C:\\usr\\share\\puppet\\modules",
         'puppetservice' => 'pe-httpd',
         'pathseparator' => ';',
         'puppetpath'    => 'C:\\ProgramData\\PuppetLabs\\puppet\\etc',
@@ -44,8 +44,8 @@ module PSWindows
             h.merge({
               'user'              => 'Administrator',
               'group'             => 'Administrators',
-              'distmoduledir'     => 'C:\\ProgramData\\PuppetLabs\\puppet\\etc\\modules',
-              'sitemoduledir'     => 'C:\\usr\\share\\puppet\\modules',
+              'distmoduledir'     => "C:\\ProgramData\\PuppetLabs\\puppet\\etc\\modules",
+              'sitemoduledir'     => "C:\\usr\\share\\puppet\\modules",
               'hieralibdir'       => 'C:\\opt\\puppet-git-repos\\hiera\\lib',
               'hierapuppetlibdir' => 'C:\\opt\\puppet-git-repos\\hiera-puppet\\lib',
               'hierabindir'       => 'C:\\opt\\puppet-git-repos\\hiera\\bin',
@@ -54,15 +54,15 @@ module PSWindows
 
               if h['platform'] && h['platform'].include?('amd64')
                 h.merge({
-                  'puppetpath'    => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\etc",
-                  'hieraconf'     => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\etc\\hiera.yaml",
-                  'puppetvardir'  => 'C:\\Program Files (x86)\\Puppet Labs\\Puppet\\var',
+                  'puppetpath'    => "C:\\ProgramData\\PuppetLabs\\puppet\\etc",
+                  'hieraconf'     => "C:\\ProgramData\\PuppetLabs\\hiera\\etc\\hiera.yaml",
+                  'puppetvardir'  => 'C:\\ProgramData\\PuppetLabs\\puppet\\etc\\var',
                   'puppetbindir'  => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\bin"
                   })
                 else
                   h.merge({
-                    'puppetpath'    => "C:\\Program Files\\Puppet Labs\\Puppet\\etc",
-                    'hieraconf'     => "C:\\Program Files\\Puppet Labs\\Puppet\\etc\\hiera.yaml",
+                    'puppetpath'    => "C:\\ProgramData\\PuppetLabs\\puppet\\etc",
+                    'hieraconf'     => "C:\\ProgramData\\PuppetLabs\\hiera\\etc\\hiera.yaml",
                     'puppetvardir'  => 'C:\\Program Files\\Puppet Labs\\Puppet\\var',
                     'puppetbindir'  => "C:\\Program Files\\Puppet Labs\\Puppet\\bin"
                     })
