@@ -346,7 +346,7 @@ module Beaker
           host.exec(Command.new("sudo sed -i '' 's/#PermitRootLogin no/PermitRootLogin Yes/g' /etc/sshd_config"))
           host.exec(Command.new("sudo sed -i '' 's/#PermitRootLogin yes/PermitRootLogin Yes/g' /etc/sshd_config"))
         elsif host['platform'] =~ /windows/
-
+          #Do nothing here
         else
           host.exec(Command.new("sudo su -c \"sed -ri 's/^#?PermitRootLogin no|^#?PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config\""), {:pty => true})
         end
@@ -494,8 +494,6 @@ module Beaker
             host.exec(Command.new("cygrunsrv -E sshd"))
             host.exec(Command.new("cygrunsrv -S sshd"))
             env['CYGWIN'] = 'nodosfilewarning'
-          else
-           #TODO
           end
         when /osx/
           host.exec(Command.new("echo '\nPermitUserEnvironment yes' >> /etc/sshd_config"))
