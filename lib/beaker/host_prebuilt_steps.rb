@@ -13,7 +13,7 @@ module Beaker
     SLEEPWAIT = 5
     TRIES = 5
     UNIX_PACKAGES = ['curl', 'ntpdate']
-    WINDOWS_PACKAGES = [] #TODO: really????
+    WINDOWS_PACKAGES = ['curl']
     SLES_PACKAGES = ['curl', 'ntp']
     DEBIAN_PACKAGES = ['curl', 'ntpdate', 'lsb-release']
     CUMULUS_PACKAGES = ['addons', 'ntpdate', 'lsb-release']
@@ -92,7 +92,9 @@ module Beaker
         when host['platform'] =~ /cumulus/
           check_and_install_packages_if_needed(host, CUMULUS_PACKAGES)
         when host['platform'] =~ /windows/
-          check_and_install_packages_if_needed(host, WINDOWS_PACKAGES)
+          if host['is_cygwin'].nil? or host['is_cygwin'] == true
+            check_and_install_packages_if_needed(host, WINDOWS_PACKAGES)
+          end
         when host['platform'] !~ /debian|aix|solaris|windows|sles-|osx-|cumulus/
           check_and_install_packages_if_needed(host, UNIX_PACKAGES)
         end
@@ -286,7 +288,11 @@ module Beaker
     # @param [String] etc_hosts The string to append to the /etc/hosts file
     def set_etc_hosts(host, etc_hosts)
       if host['platform'] =~ /windows/
-
+        if host['is_cygwin'].nil? or host['is_cygwin'] == true
+          host.exec(Command.new("echo '#{etc_hosts}' > /etc/hosts"))
+        else
+          host.exec(Command.new("echo \"#{etc_hosts}\" >> C:\\Windows\\System32\\drivers\\etc\\hosts"))
+        end
       else
         host.exec(Command.new("echo '#{etc_hosts}' > /etc/hosts"))
       end
@@ -301,7 +307,7 @@ module Beaker
       block_on host do |host|
         logger.debug "Give root a copy of current user's keys, on #{host.name}"
         if host['platform'] =~ /windows/
-          if host['is_cygwin']
+          if host['is_cygwin'].nil? or host['is_cygwin'] == true
             host.exec(Command.new('cp -r .ssh /cygdrive/c/Users/Administrator/.'))
             host.exec(Command.new('chown -R Administrator /cygdrive/c/Users/Administrator/.ssh'))
           else
