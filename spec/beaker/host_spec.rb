@@ -64,15 +64,9 @@ module Beaker
         expect(host.is_using_passenger?).to be_falsy
       end
 
-      it 'sets the paths correctly for an AIO agent host' do
+      it 'sets the paths correctly for an AIO host' do
         options['type'] = 'aio'
         expect(host['puppetvardir']).to be === Unix::Host::aio_defaults[:puppetvardir]
-      end
-
-      it 'sets the paths correctly for an AIO non-agent host' do
-        options['type'] = 'aio'
-        options['roles'] = ['master']
-        expect(host['puppetvardir']).to be === Unix::Host::foss_defaults[:puppetvardir]
       end
     end
 
@@ -329,6 +323,44 @@ module Beaker
           expect{ host.exec(command,{:acceptable_exit_codes => (0..127)}) }.to_not raise_error
         end
       end
+    end
+
+    describe "#mkdir_p" do
+
+      it "does the right thing on a bash host, identified as is_cygwin=true" do
+        @options = {:is_cygwin => true}
+        result = double
+        allow( result ).to receive( :exit_code ).and_return( 0 )
+        allow( host ).to receive( :exec ).and_return( result )
+
+        expect( Beaker::Command ).to receive(:new).with("mkdir -p test/test/test")
+        expect( host.mkdir_p('test/test/test') ).to be == true
+
+      end
+
+      it "does the right thing on a bash host, identified as is_cygwin=nil" do
+        @options = {:is_cygwin => nil}
+        result = double
+        allow( result ).to receive( :exit_code ).and_return( 0 )
+        allow( host ).to receive( :exec ).and_return( result )
+
+        expect( Beaker::Command ).to receive(:new).with("mkdir -p test/test/test")
+        expect( host.mkdir_p('test/test/test') ).to be == true
+
+      end
+
+      it "does the right thing on a non-bash host, identified as is_cygwin=false (powershell)" do
+        @options = {:is_cygwin => false}
+        result = double
+        allow( result ).to receive( :exit_code ).and_return( 0 )
+        allow( host ).to receive( :exec ).and_return( result )
+
+        expect( Beaker::Command ).to receive(:new).with("if not exist test\\test\\test (md )")
+        expect( host.mkdir_p('test/test/test') ).to be == true
+
+      end
+
+
     end
 
     context 'do_scp_to' do

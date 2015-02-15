@@ -24,6 +24,8 @@ module PSWindows
         'puppetservice' => 'pe-httpd',
         'pathseparator' => ';',
         'puppetpath'    => 'C:\\ProgramData\\PuppetLabs\\puppet\\etc',
+        'puppetconfdir' => 'C:\\ProgramData\\PuppetLabs\\puppet\\etc',
+        'puppetcodedir' => 'C:\\ProgramData\\PuppetLabs\\puppet\\etc',
         'hieraconf'     => 'C:\\ProgramData\\PuppetLabs\\puppet\\etc\\hiera.yaml',
         'puppetvardir'  => 'C:\\ProgramData\\PuppetLabs\\puppet\\var',
         })
@@ -54,15 +56,19 @@ module PSWindows
 
               if h['platform'] && h['platform'].include?('amd64')
                 h.merge({
-                  'puppetpath'    => "C:\\ProgramData\\PuppetLabs\\puppet\\etc",
-                  'hieraconf'     => "C:\\ProgramData\\PuppetLabs\\hiera\\etc\\hiera.yaml",
-                  'puppetvardir'  => 'C:\\ProgramData\\PuppetLabs\\puppet\\etc\\var',
+                  'puppetpath'    => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\etc",
+                  'puppetconfdir' => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\etc",
+                  'puppetcodedir' => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\etc",
+                  'hieraconf'     => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\etc\\hiera.yaml",
+                  'puppetvardir'  => 'C:\\Program Files (x86)\\Puppet Labs\\Puppet\\var',
                   'puppetbindir'  => "C:\\Program Files (x86)\\Puppet Labs\\Puppet\\bin"
                   })
                 else
                   h.merge({
-                    'puppetpath'    => "C:\\ProgramData\\PuppetLabs\\puppet\\etc",
-                    'hieraconf'     => "C:\\ProgramData\\PuppetLabs\\hiera\\etc\\hiera.yaml",
+                    'puppetpath'    => "C:\\Program Files\\Puppet Labs\\Puppet\\etc",
+                    'puppetconfdir' => "C:\\Program Files\\Puppet Labs\\Puppet\\etc",
+                    'puppetcodedir' => "C:\\Program Files\\Puppet Labs\\Puppet\\etc",
+                    'hieraconf'     => "C:\\Program Files\\Puppet Labs\\Puppet\\etc\\hiera.yaml",
                     'puppetvardir'  => 'C:\\Program Files\\Puppet Labs\\Puppet\\var',
                     'puppetbindir'  => "C:\\Program Files\\Puppet Labs\\Puppet\\bin"
                     })
