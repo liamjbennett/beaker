@@ -305,7 +305,7 @@ module Beaker
             host.exec(Command.new('cp -r .ssh /cygdrive/c/Users/Administrator/.'))
             host.exec(Command.new('chown -R Administrator /cygdrive/c/Users/Administrator/.ssh'))
           else
-            #TODO
+            host.exec(Command.new("if exist .ssh (xcopy .ssh C:\\Users\\Administrator\\.ssh /s /e)"))
           end
         elsif host['platform'] =~ /osx/
           host.exec(Command.new('sudo cp -r .ssh /var/root/.'), {:pty => true})
@@ -539,8 +539,6 @@ module Beaker
         env.each_pair do |var, value|
           host.add_env_var(var, value)
         end
-
-        host.exec(Command.new("cat #{host[:ssh_env_file]}"))
 
         #close the host to re-establish the connection with the new sshd settings
         host.close
