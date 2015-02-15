@@ -202,8 +202,6 @@ module Beaker
     #Examine the host system to determine the architecture
     #@return [Boolean] true if x86_64, false otherwise
     def determine_if_x86_64
-      #TODO: fix this
-      #
       if self['platform'] =~ /windows/
         if self['is_cygwin'].nil? or self['is_cygwin'] == true
           command = Beaker::Command.new("arch | grep x86_64")

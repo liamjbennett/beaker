@@ -1344,9 +1344,13 @@ module Beaker
           else
             _, module_name = parse_for_modulename( source )
           end
-          #scp_to host, source, File.join(target_module_dir, module_name), {:ignore => ignore_list}
-          on host, "if not exist \"#{target_module_dir}\\#{module_name}\" ( mkdir #{target_module_dir}\\#{module_name} )"
-          scp_to host, source, "#{target_module_dir}\\#{module_name}", {:ignore => ignore_list}
+
+          if host['platform'] =~ /windows/
+            on host, "if not exist \"#{target_module_dir}\\#{module_name}\" ( mkdir #{target_module_dir}\\#{module_name} )"
+            scp_to host, source, "#{target_module_dir}\\#{module_name}", {:ignore => ignore_list}
+          else
+            scp_to host, source, File.join(target_module_dir, module_name), {:ignore => ignore_list}
+          end
         end
       end
       alias :copy_root_module_to :copy_module_to
