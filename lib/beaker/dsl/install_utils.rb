@@ -691,11 +691,15 @@ module Beaker
 
           # Certain install paths may not create the config dirs/files needed
           if host['platform'] =~ /windows/
-            #TODO
+            if host['is_cygwin'].nil? or host['is_cygwin'] == true
+              on host, "mkdir -p #{host['puppetpath']}"
+            else
+              on host, "mkdir \"#{host['puppetpath']}\""
+            end
           else
             on host, "mkdir -p #{host['puppetpath']}"
-            on host, "echo '' >> #{host['hieraconf']}"
           end
+          on host, "echo '' >> #{host['hieraconf']}"
         end
         nil
       end

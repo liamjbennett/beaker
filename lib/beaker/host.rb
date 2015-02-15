@@ -203,9 +203,19 @@ module Beaker
     #@return [Boolean] true if x86_64, false otherwise
     def determine_if_x86_64
       #TODO: fix this
-      #result = exec(Beaker::Command.new("arch | grep x86_64"), :acceptable_exit_codes => (0...127))
-      #result.exit_code == 0
-      return true
+      #
+      if self['platform'] =~ /windows/
+        if self['is_cygwin'].nil? or self['is_cygwin'] == true
+          command = Beaker::Command.new("arch | grep x86_64")
+        else
+          command = powershell('if ((Get-WmiObject Win32_OperatingSystem).OSArchitecture -eq \'64-bit\') { exit 0 } else { exit 1}')
+        end
+      else
+        command = Beaker::Command.new("arch | grep x86_64")
+      end
+
+      result = exec(command, :acceptable_exit_codes => (0...127))
+      result.exit_code == 0
     end
 
     #@return [Boolean] true if x86_64, false otherwise

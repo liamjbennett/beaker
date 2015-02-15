@@ -495,7 +495,7 @@ module Beaker
         logger.debug("setting local environment on #{host.name}")
         case host['platform']
         when /windows/
-          if host['is_cygwin']
+          if host['is_cygwin'].nil? or host['is_cygwin'] == true
             host.exec(Command.new("echo '\nPermitUserEnvironment yes' >> /etc/sshd_config"))
             host.exec(Command.new("cygrunsrv -E sshd"))
             host.exec(Command.new("cygrunsrv -S sshd"))
@@ -526,7 +526,7 @@ module Beaker
         #ensure that ~/.ssh/environment exists
         case host['platform']
         when /windows/
-          if host['is_cygwin']
+          if host['is_cygwin'].nil? or host['is_cygwin'] == true
             host.exec(Command.new("mkdir -p #{Pathname.new(host[:ssh_env_file]).dirname}"))
             host.exec(Command.new("chmod 0600 #{Pathname.new(host[:ssh_env_file]).dirname}"))
             host.exec(Command.new("touch #{host[:ssh_env_file]}"))
