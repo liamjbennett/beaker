@@ -21,6 +21,8 @@ module Windows
         'group'         => 'Administrators',
         'puppetservice' => 'pe-httpd',
         'puppetpath'    => '`cygpath -smF 35`/PuppetLabs/puppet/etc',
+        'puppetconfdir' => '`cygpath -smF 35`/PuppetLabs/puppet/etc',
+        'puppetcodedir' => '`cygpath -smF 35`/PuppetLabs/puppet/etc',
         'hieraconf'     => '`cygpath -smF 35`/Puppetlabs/puppet/etc/hiera.yaml',
         'puppetvardir'  => '`cygpath -smF 35`/PuppetLabs/puppet/var',
         'distmoduledir' => '`cygpath -smF 35`/PuppetLabs/puppet/etc/modules',
@@ -37,14 +39,16 @@ module Windows
         'user'              => 'Administrator',
         'group'             => 'Administrators',
         'puppetpath'        => '`cygpath -smF 35`/PuppetLabs/puppet/etc',
+        'puppetconfdir'        => '`cygpath -smF 35`/PuppetLabs/puppet/etc',
+        'puppetcodedir'        => '`cygpath -smF 35`/PuppetLabs/puppet/etc',
         'hieraconf'         => '`cygpath -smF 35`/Puppetlabs/puppet/etc/hiera.yaml',
         'puppetvardir'      => '`cygpath -smF 35`/PuppetLabs/puppet/var',
         'distmoduledir'     => '`cygpath -smF 35`/PuppetLabs/puppet/etc/modules',
         'sitemoduledir'     => 'C:/usr/share/puppet/modules',
         'hieralibdir'       => '`cygpath -w /opt/puppet-git-repos/hiera/lib`',
         'hierapuppetlibdir' => '`cygpath -w /opt/puppet-git-repos/hiera-puppet/lib`',
-        #let's just add both potential bin dirs to the path
-        'puppetbindir'  => '/cygdrive/c/Program Files (x86)/Puppet Labs/Puppet/bin:/cygdrive/c/Program Files/Puppet Labs/Puppet/bin',
+        #let's just add both potential bin dirs to the path, include ruby too for `gem`, `ruby`, etc
+        'puppetbindir'  => '/cygdrive/c/Program Files (x86)/Puppet Labs/Puppet/bin:/cygdrive/c/Program Files/Puppet Labs/Puppet/bin:/cygdrive/c/Program Files (x86)/Puppet Labs/Puppet/sys/ruby/bin:/cygdrive/c/Program Files/Puppet Labs/Puppet/sys/ruby/bin',
         'hierabindir'       => '/opt/puppet-git-repos/hiera/bin',
         'pathseparator'     => ';',
       })

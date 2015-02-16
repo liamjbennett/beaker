@@ -54,7 +54,6 @@ module Beaker
       # related through 'type' and the differences between the assumption of our two
       # configurations we have for many of our products
       type = @options.get_type
-      type = :foss if type == :aio && !@options['HOSTS'][@name]['roles'].include?('agent')
       @defaults = merge_defaults_for_type @options, type
       pkg_initialize
     end
@@ -300,7 +299,7 @@ module Beaker
     # @param [String] dir The directory structure to create on the host
     # @return [Boolean] True, if directory construction succeeded, otherwise False
     def mkdir_p dir
-      if host['is_cygwin'].nil? or host['is_cygwin'] == true
+      if self['is_cygwin'].nil? or self['is_cygwin'] == true
         cmd = "mkdir -p #{dir}"
       else
         cmd = "if not exist #{dir.gsub!('/','\\')} (md #{dir.gsub!('/','\\')})"
