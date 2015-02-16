@@ -1346,8 +1346,12 @@ module Beaker
           end
 
           if host['platform'] =~ /windows/
-            on host, "if not exist \"#{target_module_dir}\\#{module_name}\" ( mkdir #{target_module_dir}\\#{module_name} )"
-            scp_to host, source, "#{target_module_dir}\\#{module_name}", {:ignore => ignore_list}
+            if host['is_cygwin'].nil? or host['is_cygwin'] == true
+              scp_to host, source, File.join(target_module_dir, module_name), {:ignore => ignore_list}
+            else
+              on host, "if not exist \"#{target_module_dir}\\#{module_name}\" ( mkdir #{target_module_dir}\\#{module_name} )"
+              scp_to host, source, "#{target_module_dir}\\#{module_name}", {:ignore => ignore_list}
+            end
           else
             scp_to host, source, File.join(target_module_dir, module_name), {:ignore => ignore_list}
           end
